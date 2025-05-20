@@ -13,11 +13,5 @@ public class User {
 
     @Id
     private String uid;  // Firebase UID
-
-    @Column(nullable = false, unique = true)
     private String email;
-
-    private String displayName;
-
-    private String profileImage;
 }
