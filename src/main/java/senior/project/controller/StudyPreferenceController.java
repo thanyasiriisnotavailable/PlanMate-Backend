@@ -45,4 +45,29 @@ public class StudyPreferenceController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PutMapping
+    public ResponseEntity<StudyPreferenceDto> update(@RequestBody StudyPreferenceDto dto) {
+        String uid = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userService.findByUid(uid)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + uid));
+
+        return preferenceService.getPreference(uid).map(existingPreference -> {
+            // Update fields
+            existingPreference.setMinSessionDuration(dto.getMinSessionDuration());
+            existingPreference.setMaxSessionDuration(dto.getMaxSessionDuration());
+            existingPreference.setPreferredStudyTimes(dto.getPreferredStudyTimes());
+            existingPreference.setRevisionFrequency(dto.getRevisionFrequency());
+            existingPreference.setBreakDurations(dto.getBreakDurations());
+
+            StudyPreference updated = preferenceService.savePreference(existingPreference);
+            return ResponseEntity.ok(mapper.toDto(updated));
+        }).orElseGet(() -> {
+            // If preference doesn't exist, create new one
+            StudyPreference newPreference = mapper.toEntity(dto, user);
+            newPreference.setUserUid(uid);
+            StudyPreference saved = preferenceService.savePreference(newPreference);
+            return ResponseEntity.ok(mapper.toDto(saved));
+        });
+    }
 }
