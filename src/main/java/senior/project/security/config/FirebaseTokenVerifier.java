@@ -3,6 +3,7 @@ package senior.project.security.config;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.UserRecord;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +42,24 @@ public class FirebaseTokenVerifier extends OncePerRequestFilter {
             try {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
                 request.setAttribute("firebaseUser", decodedToken);
+
+                // Fetch the full user record
+                UserRecord userRecord = FirebaseAuth.getInstance().getUser(decodedToken.getUid());
+
+                // Extract 'auth_time' from the token's claims
+                Object authTimeObj = decodedToken.getClaims().get("auth_time");
+                if (authTimeObj == null) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                long tokenAuthTime = ((Number) authTimeObj).longValue() * 1000L; // Convert to ms
+                long tokensValidAfter = userRecord.getTokensValidAfterTimestamp(); // Already in ms
+
+                // Invalidate if token was issued before session revocation
+                if (tokenAuthTime < tokensValidAfter) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
                 String uid = decodedToken.getUid();
                 Optional<User> existingUser = userService.findByUid(uid);
