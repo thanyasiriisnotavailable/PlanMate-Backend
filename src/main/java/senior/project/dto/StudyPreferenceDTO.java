@@ -1,4 +1,4 @@
-package senior.project.entity;
+package senior.project.dto;
 
 import lombok.*;
 
@@ -8,7 +8,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StudyPreferenceDto {
+public class StudyPreferenceDTO {
     private String userUid;
     private Integer minSessionDuration;
     private Integer maxSessionDuration;
