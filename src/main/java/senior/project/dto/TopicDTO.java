@@ -7,10 +7,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class TopicDTO {
-    private Long id;
-    private String name;
+    private String title;
     private Long difficulty;
     private Long confidence;
     private Long estimatedStudyTime;
-    private Long courseId;
 }

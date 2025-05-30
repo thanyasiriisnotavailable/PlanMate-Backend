@@ -24,5 +24,10 @@ public class StudyPreference {
     private List<String> preferredStudyTimes;
 
     private String revisionFrequency;
-    private String breakDurations;
+    private Integer breakDurations;
+
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "user_uid")
+    private User user;
 }

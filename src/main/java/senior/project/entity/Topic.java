@@ -14,13 +14,11 @@ public class Topic {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    @ManyToOne
-    @JoinColumn(name = "course_id")
-    private Course course;
-
-    private Long difficulty; // e.g., 1 = easy, 3 = hard
+    private String title;
+    private Long difficulty;
     private Long confidence;
     private Long estimatedStudyTime;
+
+    @ManyToOne
+    private Course course;
 }

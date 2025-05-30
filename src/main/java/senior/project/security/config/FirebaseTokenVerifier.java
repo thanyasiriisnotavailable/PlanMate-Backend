@@ -62,12 +62,12 @@ public class FirebaseTokenVerifier extends OncePerRequestFilter {
                 }
 
                 String uid = decodedToken.getUid();
-                Optional<User> existingUser = userService.findByUid(uid);
-                if (existingUser.isEmpty()) {
+                User existingUser = userService.findByUid(uid);
+                if (existingUser == null) {
                     User newUser = new User();
                     newUser.setUid(uid);
                     newUser.setEmail(decodedToken.getEmail());
-                    userService.saveUser(newUser);
+                    userService.save(newUser);
                 }
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

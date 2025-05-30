@@ -2,6 +2,7 @@ package senior.project.dto;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -9,16 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AvailabilityDTO {
-    private String userUid;
-    private List<AvailabilitySlot> slots;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class AvailabilitySlot {
-        private String dayOfWeek;
-        private String startTime;
-        private String endTime;
-    }
+    private LocalDate date;
+    private String startTime;
+    private String endTime;
 }

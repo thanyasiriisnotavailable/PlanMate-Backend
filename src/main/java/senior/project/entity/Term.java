@@ -17,6 +17,8 @@ public class Term {
     private Long id;
 
     private String name;  // e.g., "Spring 2025"
+    private String startDate; // e.g., "2025-01-10"
+    private String endDate;   // e.g., "2025-05-20"
 
     @ManyToOne
     @JoinColumn(name = "user_uid")

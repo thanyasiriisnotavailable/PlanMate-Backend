@@ -1,31 +1,26 @@
 package senior.project.service.impl;
 
+import lombok.RequiredArgsConstructor;
+import senior.project.dao.UserDao;
 import senior.project.entity.User;
-import senior.project.repository.UserRepository;
 import senior.project.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserDao userDao;
 
     @Override
-    public User saveUser(User user) {
-        return userRepository.save(user);
+    public User save(User user) {
+        return userDao.save(user);
     }
 
     @Override
-    public Optional<User> findByUid(String uid) {
-        return userRepository.findById(uid);
-    }
-
-    @Override
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public User findByUid(String uid) {
+        return userDao.findByUid(uid);
     }
 }

@@ -14,5 +14,5 @@ public class StudyPreferenceDTO {
     private Integer maxSessionDuration;
     private List<String> preferredStudyTimes;
     private String revisionFrequency;
-    private String breakDurations;
+    private Integer breakDurations;
 }

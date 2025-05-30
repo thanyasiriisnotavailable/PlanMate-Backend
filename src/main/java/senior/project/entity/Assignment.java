@@ -3,6 +3,8 @@ package senior.project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "assignments")
 @Data
@@ -15,12 +17,13 @@ public class Assignment {
     private Long id;
 
     private String title;
+    private LocalDate dueDate;
+    private String dueTime;
+    private Long estimatedTime;
 
     @ManyToOne
-    @JoinColumn(name = "course_id")
     private Course course;
 
-    private String dueDate;
-    private String dueTime;
-    private Long estimatedHours;
+    @ManyToOne(optional = true)
+    private Topic associatedTopic; // Optional link
 }

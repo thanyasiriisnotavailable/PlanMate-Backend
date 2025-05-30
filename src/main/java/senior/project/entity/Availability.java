@@ -3,6 +3,8 @@ package senior.project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "availabilities")
 @Data
@@ -14,11 +16,10 @@ public class Availability {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_uid", referencedColumnName = "uid")
-    private User user;
-
-    private String dayOfWeek; // e.g., "Monday"
+    private LocalDate date;
     private String startTime; // e.g., "14:00"
     private String endTime;   // e.g., "16:00"
+
+    @ManyToOne
+    private User user;
 }

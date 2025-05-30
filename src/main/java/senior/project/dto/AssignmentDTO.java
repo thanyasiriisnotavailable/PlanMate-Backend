@@ -2,15 +2,16 @@ package senior.project.dto;
 
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AssignmentDTO {
-    private Long id;
     private String title;
-    private String dueDate;
+    private LocalDate dueDate;
     private String dueTime;
-    private Long estimatedHours;
-    private Long courseId;
+    private Long estimatedTime;
+    private Integer associatedTopicIndex; // Optional index reference to topic list
 }

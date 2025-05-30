@@ -13,23 +13,21 @@ import java.util.List;
 @Builder
 public class Course {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String name;  // e.g., "Data Structures and Algorithms"
 
     private Long credit;
 
     @ManyToOne
-    @JoinColumn(name = "term_id")
     private Term term;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "course")
     private List<Topic> topics;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "course")
     private List<Assignment> assignments;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "course")
     private List<Exam> exams;
 }

@@ -3,6 +3,7 @@ package senior.project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -17,11 +18,9 @@ public class Exam {
     private Long id;
 
     private String type; // "mid", "final", etc.
-
-    private String date; // Could also use LocalDate
+    private LocalDate date;
     private String time;
 
     @ManyToOne
-    @JoinColumn(name = "course_id")
     private Course course;
 }
