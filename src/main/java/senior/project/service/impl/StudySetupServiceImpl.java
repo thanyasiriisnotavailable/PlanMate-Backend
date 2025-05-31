@@ -76,4 +76,34 @@ public class StudySetupServiceImpl implements StudySetupService {
             availabilityDao.save(availability);
         }
     }
+
+    @Override
+    @Transactional
+    public StudySetupDTO getStudySetup(String userUid) {
+        User user = userDao.findByUid(userUid);
+        Term term = termDao.findByUser(user);
+
+        if (term == null) {
+            return null;
+        }
+
+        List<Course> courses = courseDao.findByTerm(term);
+        for (Course course : courses) {
+            course.setTopics(topicDao.findByCourse(course));
+            course.setAssignments(assignmentDao.findByCourse(course));
+            course.setExams(examDao.findByCourse(course));
+        }
+        term.setCourses(courses);
+
+        List<Availability> availabilities = availabilityDao.findByUser(user);
+
+        TermDTO termDTO = mapper.toTermDto(term);
+        List<AvailabilityDTO> availabilityDTOs = mapper.toAvailabilityDtoList(availabilities);
+
+        return StudySetupDTO.builder()
+                .userUid(userUid)
+                .term(termDTO)
+                .availabilities(availabilityDTOs)
+                .build();
+    }
 }

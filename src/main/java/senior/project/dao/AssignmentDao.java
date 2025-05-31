@@ -1,6 +1,7 @@
 package senior.project.dao;
 
 import senior.project.entity.Assignment;
+import senior.project.entity.Course;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,4 +9,5 @@ import java.util.Optional;
 public interface AssignmentDao {
     void save(Assignment assignment);
     void saveAll(List<Assignment> assignments);
+    List<Assignment> findByCourse(Course course);
 }

@@ -3,6 +3,7 @@ package senior.project.dao.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.TopicDao;
+import senior.project.entity.Course;
 import senior.project.entity.Topic;
 import senior.project.repository.TopicRepository;
 
@@ -23,5 +24,10 @@ public class TopicDaoImpl implements TopicDao {
     @Override
     public void saveAll(List<Topic> topics) {
         topicRepository.saveAll(topics);
+    }
+
+    @Override
+    public List<Topic> findByCourse(Course course) {
+        return topicRepository.findByCourse(course);
     }
 }

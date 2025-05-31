@@ -20,6 +20,8 @@ public class Course {
     private Long credit;
 
     @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Term term;
 
     @OneToMany(mappedBy = "course")

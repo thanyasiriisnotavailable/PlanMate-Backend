@@ -4,4 +4,5 @@ import senior.project.dto.StudySetupDTO;
 
 public interface StudySetupService {
     void processStudySetup(String userUid, StudySetupDTO dto);
+    StudySetupDTO getStudySetup(String userUid);
 }

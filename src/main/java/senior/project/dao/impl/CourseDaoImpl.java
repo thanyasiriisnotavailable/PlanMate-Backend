@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.CourseDao;
 import senior.project.entity.Course;
+import senior.project.entity.Term;
 import senior.project.repository.CourseRepository;
 
 import java.util.List;
@@ -22,5 +23,10 @@ public class CourseDaoImpl implements CourseDao {
     @Override
     public void saveAll(List<Course> courses) {
         courseRepository.saveAll(courses);
+    }
+
+    @Override
+    public List<Course> findByTerm(Term term) {
+        return courseRepository.findByTerm(term);
     }
 }

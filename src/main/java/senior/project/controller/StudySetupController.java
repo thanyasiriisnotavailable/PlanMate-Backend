@@ -14,6 +14,17 @@ public class StudySetupController {
 
     private final StudySetupService studySetupService;
 
+    @GetMapping
+    public ResponseEntity<StudySetupDTO> getStudySetup() {
+        String uid = getAuthenticatedUid();
+        StudySetupDTO dto = studySetupService.getStudySetup(uid);
+        if (dto == null) {
+            System.out.println("No study setup found");
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(dto);
+    }
+
     @PostMapping
     public ResponseEntity<Void> setupStudyPlan(@RequestBody StudySetupDTO dto) {
         String uid = getAuthenticatedUid();

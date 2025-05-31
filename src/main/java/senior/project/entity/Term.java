@@ -25,5 +25,7 @@ public class Term {
     private User user;
 
     @OneToMany(mappedBy = "term", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<Course> courses;
 }

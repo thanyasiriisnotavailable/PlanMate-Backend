@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.AvailabilityDao;
 import senior.project.entity.Availability;
+import senior.project.entity.Course;
+import senior.project.entity.Topic;
+import senior.project.entity.User;
 import senior.project.repository.AvailabilityRepository;
 
 import java.util.List;
@@ -22,5 +25,10 @@ public class AvailabilityDaoImpl implements AvailabilityDao {
     @Override
     public void saveAll(List<Availability> availabilities) {
         availabilityRepository.saveAll(availabilities);
+    }
+
+    @Override
+    public List<Availability> findByUser(User user) {
+        return availabilityRepository.findByUser(user);
     }
 }
