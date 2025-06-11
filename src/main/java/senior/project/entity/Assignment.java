@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "assignments")
@@ -16,7 +17,7 @@ public class Assignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
+    private String name;
     private LocalDate dueDate;
     private String dueTime;
     private Long estimatedTime;
@@ -24,6 +25,6 @@ public class Assignment {
     @ManyToOne
     private Course course;
 
-    @ManyToOne(optional = true)
-    private Topic associatedTopic; // Optional link
+    @ManyToMany
+    private List<Topic> associatedTopics;
 }

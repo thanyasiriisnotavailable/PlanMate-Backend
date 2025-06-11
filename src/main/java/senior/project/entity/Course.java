@@ -15,7 +15,7 @@ public class Course {
     @Id
     private String id;
 
-    private String name;  // e.g., "Data Structures and Algorithms"
+    private String name;
 
     private Long credit;
 

@@ -1,6 +1,7 @@
 package senior.project.dto;
 
 import lombok.*;
+import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
 
@@ -9,7 +10,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class ExamDTO {
-    private String type; // e.g., "mid", "final"
+    private ExamType type;
     private LocalDate date; // e.g., "2025-02-25"
-    private String time; // e.g., "09:00–11:00"
+    private String startTime;
+    private String endTime;
 }

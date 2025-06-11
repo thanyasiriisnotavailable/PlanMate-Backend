@@ -39,10 +39,14 @@ public class StudySetupServiceImpl implements StudySetupService {
             courseDao.save(course);
 
             List<Topic> savedTopics = new ArrayList<>();
+            Map<String, Topic> topicByTitle = new HashMap<>();
+
             for (TopicDTO topicDTO : courseDTO.getTopics()) {
                 Topic topic = mapper.toTopic(topicDTO);
                 topic.setCourse(course);
-                savedTopics.add(topicDao.save(topic));
+                Topic savedTopic = topicDao.save(topic);
+                savedTopics.add(savedTopic);
+                topicByTitle.put(topic.getName(), savedTopic);
             }
 
             for (ExamDTO examDTO : courseDTO.getExams()) {
@@ -56,15 +60,27 @@ public class StudySetupServiceImpl implements StudySetupService {
                     Assignment assignment = mapper.toAssignment(assignmentDTO);
                     assignment.setCourse(course);
 
-                    if (assignmentDTO.getAssociatedTopicIndex() != null &&
-                            assignmentDTO.getAssociatedTopicIndex() < savedTopics.size()) {
-                        assignment.setAssociatedTopic(savedTopics.get(assignmentDTO.getAssociatedTopicIndex()));
+                    if (assignmentDTO.getAssociatedTopicTitles() != null && !assignmentDTO.getAssociatedTopicTitles().isEmpty()) {
+                        List<Topic> associatedTopics = new ArrayList<>();
+
+                        for (String topicTitle : assignmentDTO.getAssociatedTopicTitles()) {
+                            Topic topic = topicByTitle.get(topicTitle);
+                            if (topic != null) {
+                                associatedTopics.add(topic);
+                            } else {
+                                System.out.println("Warning: Topic not found for assignment: " + topicTitle);
+                            }
+                        }
+
+                        assignment.setAssociatedTopics(associatedTopics); // ✅ Correct
                     }
+
 
                     assignmentDao.save(assignment);
                 }
             }
         }
+
 
         for (AvailabilityDTO availabilityDTO : dto.getAvailabilities()) {
             Availability availability = Availability.builder()

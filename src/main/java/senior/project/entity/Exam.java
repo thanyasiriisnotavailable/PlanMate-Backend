@@ -2,6 +2,7 @@ package senior.project.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,9 +18,12 @@ public class Exam {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String type; // "mid", "final", etc.
+    @Enumerated(EnumType.STRING)
+    private ExamType type;
+
     private LocalDate date;
-    private String time;
+    private String startTime;
+    private String endTime;
 
     @ManyToOne
     private Course course;
