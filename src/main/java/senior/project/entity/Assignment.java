@@ -2,6 +2,7 @@ package senior.project.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,13 +15,14 @@ import java.util.List;
 @Builder
 public class Assignment {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String name;
     private LocalDate dueDate;
     private String dueTime;
     private Long estimatedTime;
+    private ExamType examType;
+    private Boolean completed;
 
     @ManyToOne
     private Course course;

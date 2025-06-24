@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class CourseDTO {
-    private String id;
+    private String courseCode;
     private String name;
     private Long credit;
     private List<TopicDTO> topics;

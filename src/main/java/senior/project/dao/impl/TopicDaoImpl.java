@@ -30,4 +30,10 @@ public class TopicDaoImpl implements TopicDao {
     public List<Topic> findByCourse(Course course) {
         return topicRepository.findByCourse(course);
     }
+
+    @Override
+    public Topic findById(String topicId) {
+        return topicRepository.findById(topicId)
+                .orElseThrow(() -> new RuntimeException("Topic not found"));
+    }
 }

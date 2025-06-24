@@ -1,6 +1,7 @@
 package senior.project.dto;
 
 import lombok.*;
+import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,9 +11,14 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AssignmentDTO {
+    private String id;
     private String name;
     private LocalDate dueDate;
     private String dueTime;
     private Long estimatedTime;
-    private List<String> associatedTopicTitles;
+    private ExamType examType;
+    private Boolean completed;
+
+    private List<String> associatedTopicIds;
+    private CourseIdDTO courseId;
 }

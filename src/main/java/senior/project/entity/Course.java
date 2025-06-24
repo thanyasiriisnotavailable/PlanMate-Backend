@@ -3,6 +3,7 @@ package senior.project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Entity
@@ -12,16 +13,15 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Course {
-    @Id
-    private String id;
+    @EmbeddedId
+    private CourseId courseId;
 
     private String name;
-
     private Long credit;
 
-    @ManyToOne
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
+    @MapsId("termId")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "term_id")
     private Term term;
 
     @OneToMany(mappedBy = "course")
@@ -33,3 +33,4 @@ public class Course {
     @OneToMany(mappedBy = "course")
     private List<Exam> exams;
 }
+

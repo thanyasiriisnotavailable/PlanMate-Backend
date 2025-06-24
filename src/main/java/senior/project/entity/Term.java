@@ -14,17 +14,17 @@ import java.util.List;
 public class Term {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "term_id")
+    private Long termId;
 
     private String name;  // e.g., "Spring 2025"
     private String startDate; // e.g., "2025-01-10"
     private String endDate;   // e.g., "2025-05-20"
 
-    @ManyToOne
-    @JoinColumn(name = "user_uid")
+    @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @OneToMany(mappedBy = "term", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "term", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Course> courses;

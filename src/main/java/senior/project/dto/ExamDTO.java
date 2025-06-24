@@ -14,4 +14,6 @@ public class ExamDTO {
     private LocalDate date; // e.g., "2025-02-25"
     private String startTime;
     private String endTime;
+
+    private CourseIdDTO courseId;
 }

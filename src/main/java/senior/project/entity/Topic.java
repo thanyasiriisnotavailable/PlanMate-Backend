@@ -12,8 +12,7 @@ import senior.project.enums.ExamType;
 @Builder
 public class Topic {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String name;
     private Long difficulty;
@@ -24,5 +23,9 @@ public class Topic {
     private ExamType examType;
 
     @ManyToOne
+    @JoinColumns({
+            @JoinColumn(name = "term_id"),
+            @JoinColumn(name = "course_code")
+    })
     private Course course;
 }

@@ -8,8 +8,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StudySetupDTO {
+public class StudySetupResponseDTO {
     private String userUid;
-    private TermDTO term;
+    private TermResponseDTO term;
     private List<AvailabilityDTO> availabilities;
 }

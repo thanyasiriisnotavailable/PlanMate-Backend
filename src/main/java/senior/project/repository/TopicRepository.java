@@ -6,6 +6,6 @@ import senior.project.entity.Topic;
 
 import java.util.List;
 
-public interface TopicRepository extends JpaRepository<Topic, Long> {
+public interface TopicRepository extends JpaRepository<Topic, String> {
     List<Topic> findByCourse(Course course);
 }

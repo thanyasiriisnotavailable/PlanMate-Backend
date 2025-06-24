@@ -9,4 +9,5 @@ public interface TopicDao {
     Topic save(Topic topic);
     void saveAll(List<Topic> topics);
     List<Topic> findByCourse(Course course);
+    Topic findById(String topicId);
 }

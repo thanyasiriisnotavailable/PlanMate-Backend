@@ -26,5 +26,9 @@ public class Exam {
     private String endTime;
 
     @ManyToOne
+    @JoinColumns({
+            @JoinColumn(name = "term_id"),
+            @JoinColumn(name = "course_code")
+    })
     private Course course;
 }

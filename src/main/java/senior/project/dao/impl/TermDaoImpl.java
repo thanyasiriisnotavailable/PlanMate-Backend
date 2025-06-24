@@ -7,7 +7,7 @@ import senior.project.entity.Term;
 import senior.project.entity.User;
 import senior.project.repository.TermRepository;
 
-import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -16,12 +16,17 @@ public class TermDaoImpl implements TermDao {
     private final TermRepository termRepository;
 
     @Override
-    public void save(Term term) {
-        termRepository.save(term);
+    public Term save(Term term) {
+        return termRepository.save(term);
     }
 
     @Override
     public Term findByUser(User user) {
         return termRepository.findByUser(user);
+    }
+
+    @Override
+    public Optional<Term> findById(Long id) {
+        return termRepository.findById(id);
     }
 }

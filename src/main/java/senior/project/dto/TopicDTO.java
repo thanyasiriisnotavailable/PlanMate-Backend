@@ -8,9 +8,12 @@ import senior.project.enums.ExamType;
 @AllArgsConstructor
 @Builder
 public class TopicDTO {
+    private String id;
     private String name;
     private Long difficulty;
     private Long confidence;
     private Long estimatedStudyTime;
     private ExamType examType;
+
+    private CourseIdDTO courseId;
 }

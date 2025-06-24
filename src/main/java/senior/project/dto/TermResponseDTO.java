@@ -8,7 +8,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TermDTO {
+public class TermResponseDTO {
+    private Long termId;
     private String name; // e.g., "Spring 2025"
     private String startDate; // e.g., "2025-01-10"
     private String endDate;   // e.g., "2025-05-20"
