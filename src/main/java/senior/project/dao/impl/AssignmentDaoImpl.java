@@ -30,4 +30,19 @@ public class AssignmentDaoImpl implements AssignmentDao {
     public List<Assignment> findByCourse(Course course) {
         return assignmentRepository.findByCourse(course);
     }
+
+    @Override
+    public void deleteByCourse(Course existingCourse) {
+        assignmentRepository.deleteAll(assignmentRepository.findByCourse(existingCourse));
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return assignmentRepository.existsById(id);
+    }
+
+    @Override
+    public Assignment findById(String id) {
+        return null;
+    }
 }

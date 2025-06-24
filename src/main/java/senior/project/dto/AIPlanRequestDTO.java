@@ -11,7 +11,7 @@ import java.util.List;
 public class AIPlanRequestDTO {
     private StudyPreferenceDTO studyPreference;
     private List<AvailabilityDTO> availabilities;
-    private List<CourseDTO> courses;
+    private List<CourseResponseDTO> courses;
     private List<TopicDTO> topics;
     private List<AssignmentDTO> assignments;
     private List<ExamDTO> exams;

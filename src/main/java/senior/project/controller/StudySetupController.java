@@ -1,6 +1,7 @@
 package senior.project.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +9,7 @@ import senior.project.dto.*;
 import senior.project.service.StudySetupService;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/study-setup")
@@ -28,8 +30,14 @@ public class StudySetupController {
     @GetMapping("/terms/{termId}")
     public ResponseEntity<TermResponseDTO> getTermById(@PathVariable Long termId) {
         String uid = getAuthenticatedUid();
-        TermResponseDTO term = studySetupService.getTermById(uid, termId);
-        return (term == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(term);
+        try {
+            TermResponseDTO term = studySetupService.getTermById(uid, termId);
+            return ResponseEntity.ok(term);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 Forbidden
+        }
     }
 
     // GET: Get current term based on current date
@@ -40,46 +48,77 @@ public class StudySetupController {
         return (term == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(term);
     }
 
-
-    // POST: Save Term
+    // POST: Save Term (creates a new term)
     @PostMapping("/terms")
-    public ResponseEntity<TermResponseDTO> saveTerm(@RequestBody TermRequestDTO termDTO) {
+    public ResponseEntity<TermResponseDTO> createTerm(@RequestBody TermRequestDTO termDTO) {
         String uid = getAuthenticatedUid();
         TermResponseDTO savedTerm = studySetupService.saveTerm(uid, termDTO);
-        return ResponseEntity.ok(savedTerm);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedTerm); // 201 Created
     }
 
-    @PutMapping("/terms/{id}")
-    public ResponseEntity<TermResponseDTO> updateTerm(@PathVariable Long id, @RequestBody TermRequestDTO request) {
+    // PUT: Update Term
+    @PutMapping("/terms/{termId}")
+    public ResponseEntity<TermResponseDTO> updateTerm(@PathVariable Long termId, @RequestBody TermRequestDTO request) {
         String uid = getAuthenticatedUid();
-        TermResponseDTO updatedTerm = studySetupService.updateTerm(uid, request, id);
-        return ResponseEntity.ok(updatedTerm);
+        try {
+            TermResponseDTO updatedTerm = studySetupService.updateTerm(uid, request, termId);
+            return ResponseEntity.ok(updatedTerm);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
 
-    // POST: Save list of courses
-    @PostMapping("/courses")
-    public ResponseEntity<Void> saveCourses(@RequestBody List<CourseDTO> courseDTOs) {
+    // PUT: Save or Update a list of courses for a specific term
+    // This replaces the old /courses and /course-details for general course management
+    @PutMapping("/terms/{termId}/courses")
+    public ResponseEntity<List<CourseResponseDTO>> saveAllCourses(
+            @PathVariable Long termId,
+            @RequestBody List<CourseResponseDTO> course) {
         String uid = getAuthenticatedUid();
-        studySetupService.saveCourses(uid, courseDTOs);
-        return ResponseEntity.ok().build();
+        try {
+            List<CourseResponseDTO> savedCourses = studySetupService.saveAllCourses(uid, termId, course);
+            return ResponseEntity.ok(savedCourses);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    // POST: Save all course details (topics, exams, assignments)
-    @PostMapping("/course-details")
-    public ResponseEntity<Void> saveCourseDetails(@RequestBody List<CourseDTO> courseDTOs) {
+    // DELETE: Delete a specific course
+    @DeleteMapping("/terms/{termId}/courses/{courseCode}")
+    public ResponseEntity<Void> deleteCourse(
+            @PathVariable Long termId,
+            @PathVariable String courseCode) {
         String uid = getAuthenticatedUid();
-        studySetupService.saveCourseDetails(uid, courseDTOs);
-        return ResponseEntity.ok().build();
+        try {
+            studySetupService.deleteCourse(uid, termId, courseCode);
+            return ResponseEntity.noContent().build(); // 204 No Content for successful deletion
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
+
 
     // POST: Save availability list
-    @PostMapping("/availabilities")
-    public ResponseEntity<Void> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
-        String uid = getAuthenticatedUid();
-        studySetupService.saveAvailabilities(uid, availabilityDTOs);
-        return ResponseEntity.ok().build();
-    }
-
+    // Consider if this should also be a PUT for updates, or if it's always an overwrite.
+//    @PostMapping("/availabilities")
+//    public ResponseEntity<Void> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
+//        String uid = getAuthenticatedUid();
+//        try {
+//            studySetupService.saveAvailabilities(uid, availabilityDTOs);
+//            return ResponseEntity.ok().build();
+//        } catch (NoSuchElementException e) {
+//            return ResponseEntity.badRequest().build(); // User not found, or similar
+//        }
+//    }
+//
     private String getAuthenticatedUid() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

@@ -5,11 +5,11 @@ import senior.project.entity.CourseId;
 import senior.project.entity.Term;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface CourseDao {
-    void save(Course course);
+    Course save(Course course);
     void saveAll(List<Course> courses);
     List<Course> findByTerm(Term term);
     Course findById(CourseId courseId);
+    void delete(Course existingCourse);
 }

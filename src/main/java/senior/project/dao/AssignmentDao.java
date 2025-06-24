@@ -10,4 +10,7 @@ public interface AssignmentDao {
     void save(Assignment assignment);
     void saveAll(List<Assignment> assignments);
     List<Assignment> findByCourse(Course course);
+    void deleteByCourse(Course existingCourse);
+    boolean existsById(String id);
+    Assignment findById(String id);
 }

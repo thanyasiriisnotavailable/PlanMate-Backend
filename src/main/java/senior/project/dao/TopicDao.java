@@ -10,4 +10,6 @@ public interface TopicDao {
     void saveAll(List<Topic> topics);
     List<Topic> findByCourse(Course course);
     Topic findById(String topicId);
+    void deleteByCourse(Course existingCourse);
+    boolean existsById(String id);
 }

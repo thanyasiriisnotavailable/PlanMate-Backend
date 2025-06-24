@@ -36,4 +36,14 @@ public class TopicDaoImpl implements TopicDao {
         return topicRepository.findById(topicId)
                 .orElseThrow(() -> new RuntimeException("Topic not found"));
     }
+
+    @Override
+    public void deleteByCourse(Course existingCourse) {
+        topicRepository.deleteAll(topicRepository.findByCourse(existingCourse));
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return topicRepository.existsById(id);
+    }
 }

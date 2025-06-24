@@ -10,4 +10,7 @@ public interface ExamDao {
     void save(Exam exam);
     void saveAll(List<Exam> exams);
     List<Exam> findByCourse(Course course);
+    void deleteByCourse(Course existingCourse);
+    boolean existsById(String id);
+    Exam findById(String id);
 }

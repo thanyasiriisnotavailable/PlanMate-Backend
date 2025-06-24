@@ -17,8 +17,9 @@ public class CourseDaoImpl implements CourseDao {
     private final CourseRepository courseRepository;
 
     @Override
-    public void save(Course course) {
+    public Course save(Course course) {
         courseRepository.save(course);
+        return course;
     }
 
     @Override
@@ -33,7 +34,11 @@ public class CourseDaoImpl implements CourseDao {
 
     @Override
     public Course findById(CourseId courseId) {
-        return courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalStateException("Course not found: " + courseId));
+        return courseRepository.findById(courseId).orElse(null);
+    }
+
+    @Override
+    public void delete(Course existingCourse) {
+        courseRepository.delete(existingCourse);
     }
 }

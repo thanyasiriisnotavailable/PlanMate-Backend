@@ -2,6 +2,7 @@ package senior.project.util;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 import senior.project.dto.*;
 import senior.project.entity.*;
@@ -12,7 +13,7 @@ import java.util.List;
 public interface DTOMapper {
     DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
 
-    // Study Preference
+    // === Study Preference Mapping ===
     StudyPreferenceDTO toStudyPreferenceDto(StudyPreference preference);
 
     StudyPreference toStudyPreference(StudyPreferenceDTO dto);
@@ -23,7 +24,7 @@ public interface DTOMapper {
         return pref;
     }
 
-    // Term
+    // === Term Mapping ===
     TermResponseDTO toTermDto(Term term);
 
     Term toTerm(TermRequestDTO dto);
@@ -34,32 +35,42 @@ public interface DTOMapper {
         return term;
     }
 
-    // CourseId mapping
-    CourseIdDTO toCourseIdDto(CourseId id);
-
-    CourseId toCourseId(CourseIdDTO dto);
-
-    // Course with term ID
-    default Course toCourse(CourseDTO dto, Term term) {
-        if (dto == null || term == null || term.getTermId() == null) return null;
-
-        Course course = new Course();
-        course.setTerm(term); // set term before setting ID
-        CourseId id = new CourseId(term.getTermId(), dto.getCourseCode());
-        course.setCourseId(id);
-        course.setName(dto.getName());
-        course.setCredit(dto.getCredit());
-        return course;
-    }
-
-
+    // === Course Mapping ===
 
     @Mapping(target = "courseCode", source = "courseId.courseCode")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "credit", source = "credit")
-    CourseDTO toCourseDto(Course course);
+    CourseBaseDTO toCourseBaseDto(Course course);
 
-    List<CourseDTO> toCourseDtoList(List<Course> list);
+    @Mapping(target = "courseId", source = "courseId")
+    @Mapping(target = "courseCode", source = "courseId.courseCode")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "credit", source = "credit")
+    @Mapping(target = "topics", source = "topics")
+    @Mapping(target = "assignments", source = "assignments")
+    @Mapping(target = "exams", source = "exams")
+    CourseResponseDTO toCourseResponseDto(Course course);
+
+    List<CourseResponseDTO> toCourseResponseDtoList(List<Course> courses);
+
+    @Mapping(target = "courseId", ignore = true) // courseId is part of the path, so don't update directly
+    @Mapping(target = "term", ignore = true) // term is set separately
+    @Mapping(target = "topics", ignore = true) // topics, assignments, exams are handled in service
+    @Mapping(target = "assignments", ignore = true)
+    @Mapping(target = "exams", ignore = true)
+    void updateCourseFromDto(CourseResponseDTO dto, @MappingTarget Course course);
+
+    // Default mapper for creating entity from base DTO
+    default Course toCourse(CourseBaseDTO dto, Term term) {
+        if (dto == null || term == null || term.getTermId() == null) return null;
+
+        return Course.builder()
+                .courseId(new CourseId(term.getTermId(), dto.getCourseCode()))
+                .name(dto.getName())
+                .credit(dto.getCredit())
+                .term(term)
+                .build();
+    }
 
     // Topic
     @Mapping(target = "course.courseId", source = "courseId")

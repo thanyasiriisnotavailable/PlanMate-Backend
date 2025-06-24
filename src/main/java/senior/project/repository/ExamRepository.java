@@ -6,6 +6,6 @@ import senior.project.entity.Exam;
 
 import java.util.List;
 
-public interface ExamRepository extends JpaRepository<Exam, Long> {
+public interface ExamRepository extends JpaRepository<Exam, String> {
     List<Exam> findByCourse(Course course);
 }

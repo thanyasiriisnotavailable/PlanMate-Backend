@@ -31,4 +31,19 @@ public class ExamDaoImpl implements ExamDao {
         return examRepository.findByCourse(course);
     }
 
+    @Override
+    public void deleteByCourse(Course existingCourse) {
+        examRepository.deleteAll(examRepository.findByCourse(existingCourse));
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return examRepository.existsById(id);
+    }
+
+    @Override
+    public Exam findById(String id) {
+        return examRepository.findById(id).orElse(null);
+    }
+
 }

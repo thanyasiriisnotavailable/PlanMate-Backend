@@ -15,8 +15,7 @@ import java.util.List;
 @Builder
 public class Exam {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @Enumerated(EnumType.STRING)
     private ExamType type;

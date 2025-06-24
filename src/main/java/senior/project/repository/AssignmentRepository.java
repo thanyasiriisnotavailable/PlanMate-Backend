@@ -6,6 +6,6 @@ import senior.project.entity.Course;
 
 import java.util.List;
 
-public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
+public interface AssignmentRepository extends JpaRepository<Assignment, String> {
     List<Assignment> findByCourse(Course course);
 }
