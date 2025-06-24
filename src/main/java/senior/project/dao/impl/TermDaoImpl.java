@@ -7,6 +7,7 @@ import senior.project.entity.Term;
 import senior.project.entity.User;
 import senior.project.repository.TermRepository;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Repository
@@ -28,5 +29,11 @@ public class TermDaoImpl implements TermDao {
     @Override
     public Optional<Term> findById(Long id) {
         return termRepository.findById(id);
+    }
+
+    @Override
+    public Optional<Term> getCurrentTerm() {
+        LocalDate today = LocalDate.now();
+        return termRepository.findCurrentTerm(today); // Uses JPQL @Query version
     }
 }

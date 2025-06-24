@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StudySetupService {
+    TermResponseDTO getCurrentTerm(String uid);
+
     TermResponseDTO saveTerm(String userUid, TermRequestDTO termDTO);
 
     @Transactional

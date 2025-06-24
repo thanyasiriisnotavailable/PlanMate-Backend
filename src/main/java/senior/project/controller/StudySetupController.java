@@ -32,6 +32,15 @@ public class StudySetupController {
         return (term == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(term);
     }
 
+    // GET: Get current term based on current date
+    @GetMapping("/terms/current")
+    public ResponseEntity<TermResponseDTO> getCurrentTerm() {
+        String uid = getAuthenticatedUid();
+        TermResponseDTO term = studySetupService.getCurrentTerm(uid);
+        return (term == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(term);
+    }
+
+
     // POST: Save Term
     @PostMapping("/terms")
     public ResponseEntity<TermResponseDTO> saveTerm(@RequestBody TermRequestDTO termDTO) {

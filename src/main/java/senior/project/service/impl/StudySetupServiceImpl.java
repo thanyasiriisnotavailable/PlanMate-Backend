@@ -9,6 +9,7 @@ import senior.project.entity.*;
 import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -47,6 +48,20 @@ public class StudySetupServiceImpl implements StudySetupService {
     }
 
     @Override
+    public TermResponseDTO getCurrentTerm(String uid) {
+        User user = userDao.findByUid(uid);
+        Optional<Term> currentTermOpt = termDao.getCurrentTerm();
+
+        if (currentTermOpt.isEmpty()) return null;
+
+        Term currentTerm = currentTermOpt.get();
+        // Optional: verify if this term belongs to the current user
+        if (!currentTerm.getUser().equals(user)) return null;
+
+        return mapper.toTermDto(currentTerm);
+    }
+
+    @Override
     @Transactional
     public TermResponseDTO saveTerm(String userUid, TermRequestDTO termDTO) {
         User user = fetchUser(userUid);
@@ -70,8 +85,8 @@ public class StudySetupServiceImpl implements StudySetupService {
         }
 
         term.setName(request.getName());
-        term.setStartDate(request.getStartDate());
-        term.setEndDate(request.getEndDate());
+        term.setStartDate(LocalDate.parse(request.getStartDate()));
+        term.setEndDate(LocalDate.parse(request.getEndDate()));
 
         Term saved = termDao.save(term);
         return mapper.toTermDto(saved);
