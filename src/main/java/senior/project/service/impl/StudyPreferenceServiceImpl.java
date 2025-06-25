@@ -10,6 +10,7 @@ import senior.project.entity.User;
 import senior.project.service.StudyPreferenceService;
 import senior.project.service.UserService;
 import senior.project.util.DTOMapper;
+import senior.project.util.SecurityUtil;
 
 import java.util.Optional;
 
@@ -20,15 +21,16 @@ public class StudyPreferenceServiceImpl implements StudyPreferenceService {
     private final StudyPreferenceDao studyPreferenceDao;
     private final UserService userService;
     private final DTOMapper mapper;
-
     @Override
-    public Optional<StudyPreferenceDTO> getPreference(String userUid) {
+    public Optional<StudyPreferenceDTO> getPreference() {
+        String userUid = SecurityUtil.getAuthenticatedUid();
         return studyPreferenceDao.findByUserUid(userUid)
                 .map(mapper::toStudyPreferenceDto);
     }
 
     @Override
-    public StudyPreferenceDTO saveOrUpdate(String userUid, StudyPreferenceDTO dto) {
+    public StudyPreferenceDTO saveOrUpdate(StudyPreferenceDTO dto) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userService.findByUid(userUid);
 
         StudyPreference preference = studyPreferenceDao.findByUserUid(userUid)

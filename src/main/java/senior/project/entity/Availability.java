@@ -7,13 +7,17 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "availabilities")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Availability {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     private LocalDate date;
@@ -21,5 +25,6 @@ public class Availability {
     private String endTime;   // e.g., "16:00"
 
     @ManyToOne
+    @ToString.Exclude
     private User user;
 }

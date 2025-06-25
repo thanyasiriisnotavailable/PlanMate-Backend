@@ -8,6 +8,7 @@ import senior.project.entity.Course;
 import senior.project.entity.Topic;
 import senior.project.repository.AssignmentRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -43,6 +44,16 @@ public class AssignmentDaoImpl implements AssignmentDao {
 
     @Override
     public Assignment findById(String id) {
-        return null;
+        return assignmentRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public void deleteAll(Collection<Assignment> values) {
+        assignmentRepository.deleteAll(values);
+    }
+
+    @Override
+    public void delete(Assignment existingAssignment) {
+        assignmentRepository.delete(existingAssignment);
     }
 }

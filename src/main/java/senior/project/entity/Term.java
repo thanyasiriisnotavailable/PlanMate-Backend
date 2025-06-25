@@ -8,14 +8,17 @@ import java.util.List;
 
 @Entity
 @Table(name = "terms")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Term {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "term_id")
+    @EqualsAndHashCode.Include
     private Long termId;
 
     private String name;  // e.g., "Spring 2025"
@@ -29,8 +32,7 @@ public class Term {
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @OneToMany(mappedBy = "term", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "term", cascade = CascadeType.ALL)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private List<Course> courses;
 }

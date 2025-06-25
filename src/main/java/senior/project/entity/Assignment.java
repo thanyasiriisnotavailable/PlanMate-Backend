@@ -21,8 +21,10 @@ public class Assignment {
     private LocalDate dueDate;
     private String dueTime;
     private Long estimatedTime;
-    private ExamType examType;
     private Boolean completed;
+
+    @Enumerated(EnumType.STRING)
+    private ExamType examType;
 
     @ManyToOne
     private Course course;

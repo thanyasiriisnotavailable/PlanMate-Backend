@@ -20,27 +20,20 @@ public class StudyPreferenceController {
 
     @PostMapping
     public ResponseEntity<StudyPreferenceDTO> save(@RequestBody StudyPreferenceDTO dto) {
-        String uid = getAuthenticatedUid();
-        StudyPreferenceDTO saved = preferenceService.saveOrUpdate(uid, dto);
+        StudyPreferenceDTO saved = preferenceService.saveOrUpdate(dto);
         return ResponseEntity.ok(saved);
     }
 
     @GetMapping
     public ResponseEntity<StudyPreferenceDTO> get() {
-        String uid = getAuthenticatedUid();
-        return preferenceService.getPreference(uid)
+        return preferenceService.getPreference()
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping
     public ResponseEntity<StudyPreferenceDTO> update(@RequestBody StudyPreferenceDTO dto) {
-        String uid = getAuthenticatedUid();
-        StudyPreferenceDTO updated = preferenceService.saveOrUpdate(uid, dto);
+        StudyPreferenceDTO updated = preferenceService.saveOrUpdate(dto);
         return ResponseEntity.ok(updated);
-    }
-
-    private String getAuthenticatedUid() {
-        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

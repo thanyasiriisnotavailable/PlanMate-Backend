@@ -1,18 +1,24 @@
 package senior.project.service;
 
+import jakarta.transaction.Transactional;
 import senior.project.dto.*;
 
 import java.util.List;
 
 public interface StudySetupService {
-    TermResponseDTO getTermById(String userUid, Long termId);
-    TermResponseDTO getCurrentTerm(String uid);
-    TermResponseDTO saveTerm(String userUid, TermRequestDTO termDTO);
-    TermResponseDTO updateTerm(String userUid, TermRequestDTO request, Long id);
+    TermResponseDTO getTermById(Long termId);
+    TermResponseDTO getCurrentTerm();
+    TermResponseDTO saveTerm(TermRequestDTO termDTO);
+    TermResponseDTO updateTerm(TermRequestDTO request, Long id);
 
-    List<CourseResponseDTO> saveAllCourses(String userUid, Long termId, List<CourseResponseDTO> courseDTOs);
-    void deleteCourse(String userUid, Long termId, String courseCode);
+    List<CourseResponseDTO> saveAllCourses(Long termId, List<CourseResponseDTO> courseDTOs);
+    void deleteCourse(Long termId, String courseCode);
+
+    @Transactional
+    CourseResponseDTO getCourseDetails(Long termId, String courseCode);
 
 //    void saveAvailabilities(String userUid, List<AvailabilityDTO> availabilityDTOs);
-    StudySetupResponseDTO getStudySetup(String userUid);
+    StudySetupResponseDTO getStudySetup();
+
+    CourseResponseDTO updateCourseDetails(Long termId, String courseCode, CourseResponseDTO details);
 }

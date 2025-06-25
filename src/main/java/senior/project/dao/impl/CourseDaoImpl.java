@@ -41,4 +41,9 @@ public class CourseDaoImpl implements CourseDao {
     public void delete(Course existingCourse) {
         courseRepository.delete(existingCourse);
     }
+
+    @Override
+    public void flush() {
+        courseRepository.flush();
+    }
 }

@@ -3,8 +3,6 @@ package senior.project.dto;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -3,7 +3,6 @@ package senior.project.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.*;
 import senior.project.service.StudySetupService;
@@ -21,17 +20,15 @@ public class StudySetupController {
     // GET: Get full study setup
     @GetMapping
     public ResponseEntity<StudySetupResponseDTO> getStudySetup() {
-        String uid = getAuthenticatedUid();
-        StudySetupResponseDTO dto = studySetupService.getStudySetup(uid);
+        StudySetupResponseDTO dto = studySetupService.getStudySetup();
         return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
 
     // GET: Get term by ID
     @GetMapping("/terms/{termId}")
     public ResponseEntity<TermResponseDTO> getTermById(@PathVariable Long termId) {
-        String uid = getAuthenticatedUid();
         try {
-            TermResponseDTO term = studySetupService.getTermById(uid, termId);
+            TermResponseDTO term = studySetupService.getTermById(termId);
             return ResponseEntity.ok(term);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -43,25 +40,22 @@ public class StudySetupController {
     // GET: Get current term based on current date
     @GetMapping("/terms/current")
     public ResponseEntity<TermResponseDTO> getCurrentTerm() {
-        String uid = getAuthenticatedUid();
-        TermResponseDTO term = studySetupService.getCurrentTerm(uid);
+        TermResponseDTO term = studySetupService.getCurrentTerm();
         return (term == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(term);
     }
 
     // POST: Save Term (creates a new term)
     @PostMapping("/terms")
     public ResponseEntity<TermResponseDTO> createTerm(@RequestBody TermRequestDTO termDTO) {
-        String uid = getAuthenticatedUid();
-        TermResponseDTO savedTerm = studySetupService.saveTerm(uid, termDTO);
+        TermResponseDTO savedTerm = studySetupService.saveTerm(termDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedTerm); // 201 Created
     }
 
     // PUT: Update Term
     @PutMapping("/terms/{termId}")
     public ResponseEntity<TermResponseDTO> updateTerm(@PathVariable Long termId, @RequestBody TermRequestDTO request) {
-        String uid = getAuthenticatedUid();
         try {
-            TermResponseDTO updatedTerm = studySetupService.updateTerm(uid, request, termId);
+            TermResponseDTO updatedTerm = studySetupService.updateTerm(request, termId);
             return ResponseEntity.ok(updatedTerm);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -76,9 +70,8 @@ public class StudySetupController {
     public ResponseEntity<List<CourseResponseDTO>> saveAllCourses(
             @PathVariable Long termId,
             @RequestBody List<CourseResponseDTO> course) {
-        String uid = getAuthenticatedUid();
         try {
-            List<CourseResponseDTO> savedCourses = studySetupService.saveAllCourses(uid, termId, course);
+            List<CourseResponseDTO> savedCourses = studySetupService.saveAllCourses(termId, course);
             return ResponseEntity.ok(savedCourses);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -94,15 +87,36 @@ public class StudySetupController {
     public ResponseEntity<Void> deleteCourse(
             @PathVariable Long termId,
             @PathVariable String courseCode) {
-        String uid = getAuthenticatedUid();
         try {
-            studySetupService.deleteCourse(uid, termId, courseCode);
+            studySetupService.deleteCourse(termId, courseCode);
             return ResponseEntity.noContent().build(); // 204 No Content for successful deletion
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+    }
+
+    @GetMapping("/terms/{termId}/courses/{courseCode}/details")
+    public ResponseEntity<CourseResponseDTO> getCourseDetails(
+            @PathVariable Long termId,
+            @PathVariable String courseCode) {
+        try {
+            // You'll need to implement this method in your StudySetupService
+            CourseResponseDTO details = studySetupService.getCourseDetails(termId, courseCode);
+            return ResponseEntity.ok(details);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PutMapping("/courses/{courseCode}/details")
+    public ResponseEntity<CourseResponseDTO> updateCourseDetails(
+            @RequestBody CourseResponseDTO details) {
+        CourseResponseDTO updated = studySetupService.updateCourseDetails(details.getCourseId().getTermId(), details.getCourseId().getCourseCode(), details);
+        return ResponseEntity.ok(updated);
     }
 
 
@@ -118,8 +132,4 @@ public class StudySetupController {
 //            return ResponseEntity.badRequest().build(); // User not found, or similar
 //        }
 //    }
-//
-    private String getAuthenticatedUid() {
-        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
 }

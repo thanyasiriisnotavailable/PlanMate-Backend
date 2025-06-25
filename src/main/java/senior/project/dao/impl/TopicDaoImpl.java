@@ -33,8 +33,7 @@ public class TopicDaoImpl implements TopicDao {
 
     @Override
     public Topic findById(String topicId) {
-        return topicRepository.findById(topicId)
-                .orElseThrow(() -> new RuntimeException("Topic not found"));
+        return topicRepository.findById(topicId).orElse(null);
     }
 
     @Override
@@ -45,5 +44,10 @@ public class TopicDaoImpl implements TopicDao {
     @Override
     public boolean existsById(String id) {
         return topicRepository.existsById(id);
+    }
+
+    @Override
+    public void deleteById(String existingId) {
+        topicRepository.deleteById(existingId);
     }
 }

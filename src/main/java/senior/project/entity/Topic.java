@@ -6,12 +6,16 @@ import senior.project.enums.ExamType;
 
 @Entity
 @Table(name = "topics")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Topic {
+
     @Id
+    @EqualsAndHashCode.Include
     private String id;
 
     private String name;
@@ -27,5 +31,6 @@ public class Topic {
             @JoinColumn(name = "term_id"),
             @JoinColumn(name = "course_code")
     })
+    @ToString.Exclude
     private Course course;
 }

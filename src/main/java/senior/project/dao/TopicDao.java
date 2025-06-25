@@ -12,4 +12,5 @@ public interface TopicDao {
     Topic findById(String topicId);
     void deleteByCourse(Course existingCourse);
     boolean existsById(String id);
+    void deleteById(String existingId);
 }

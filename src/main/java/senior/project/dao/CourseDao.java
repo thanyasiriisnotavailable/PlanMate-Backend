@@ -12,4 +12,5 @@ public interface CourseDao {
     List<Course> findByTerm(Term term);
     Course findById(CourseId courseId);
     void delete(Course existingCourse);
+    void flush();
 }

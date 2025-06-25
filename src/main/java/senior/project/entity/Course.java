@@ -8,12 +8,16 @@ import java.util.List;
 
 @Entity
 @Table(name = "courses")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Course {
+
     @EmbeddedId
+    @EqualsAndHashCode.Include
     private CourseId courseId;
 
     private String name;
@@ -22,15 +26,19 @@ public class Course {
     @MapsId("termId")
     @ManyToOne(optional = false)
     @JoinColumn(name = "term_id")
+    @ToString.Exclude
     private Term term;
 
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<Topic> topics;
 
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<Assignment> assignments;
 
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<Exam> exams;
 }
 

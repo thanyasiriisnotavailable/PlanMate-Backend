@@ -8,6 +8,7 @@ import senior.project.entity.Exam;
 import senior.project.entity.Topic;
 import senior.project.repository.ExamRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -44,6 +45,16 @@ public class ExamDaoImpl implements ExamDao {
     @Override
     public Exam findById(String id) {
         return examRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public void deleteAll(Collection<Exam> values) {
+        examRepository.deleteAll(values);
+    }
+
+    @Override
+    public void delete(Exam existingExam) {
+        examRepository.delete(existingExam);
     }
 
 }

@@ -9,12 +9,16 @@ import java.util.List;
 
 @Entity
 @Table(name = "exams")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Exam {
+
     @Id
+    @EqualsAndHashCode.Include
     private String id;
 
     @Enumerated(EnumType.STRING)
@@ -29,5 +33,6 @@ public class Exam {
             @JoinColumn(name = "term_id"),
             @JoinColumn(name = "course_code")
     })
+    @ToString.Exclude
     private Course course;
 }
