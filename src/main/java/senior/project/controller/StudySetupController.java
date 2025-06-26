@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.*;
+import senior.project.dto.plan.StudySetupResponseDTO;
 import senior.project.service.StudySetupService;
 
 import java.util.List;
@@ -16,6 +17,12 @@ import java.util.NoSuchElementException;
 public class StudySetupController {
 
     private final StudySetupService studySetupService;
+
+    @PostMapping
+    public ResponseEntity<Void> setupStudyPlan(@RequestBody StudySetupResponseDTO dto) {
+        studySetupService.processStudySetup(dto);
+        return ResponseEntity.ok().build();
+    }
 
     // GET: Get full study setup
     @GetMapping

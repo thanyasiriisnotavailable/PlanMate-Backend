@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.*;
 import senior.project.dto.*;
+import senior.project.dto.plan.StudySetupResponseDTO;
 import senior.project.entity.*;
 import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
@@ -26,6 +27,89 @@ public class StudySetupServiceImpl implements StudySetupService {
     private final AssignmentDao assignmentDao;
     private final AvailabilityDao availabilityDao;
     private final DTOMapper mapper;
+
+    @Override
+    @Transactional
+    public void processStudySetup(StudySetupResponseDTO dto) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        User user = userDao.findByUid(userUid);
+
+        Term term = new Term();
+        term.setUser(user);
+        term.setName(dto.getTerm().getName());
+        term.setStartDate(dto.getTerm().getStartDate());
+        term.setEndDate(dto.getTerm().getEndDate());
+        Term persistedTerm = termDao.save(term); // Step 1: Save Term to generate its ID.
+
+        if (dto.getTerm().getCourses() != null) {
+            for (CourseResponseDTO courseDTO : dto.getTerm().getCourses()) {
+                Course course = new Course();
+
+                // ============================ BUG FIX AREA ============================
+                // The error "Column 'course_code' cannot be null" was caused by trying to
+                // access the course code via `getCourseCode()` when the incoming JSON field
+                // is named "id".
+                //
+                // Corrected Logic:
+                // Changed `courseDTO.getCourseCode()` to `courseDTO.getId()` to correctly
+                // retrieve the value (e.g., "C101") from the DTO.
+                CourseId courseId = new CourseId(persistedTerm.getTermId(), courseDTO.getCourseCode());
+                // ======================================================================
+
+                course.setCourseId(courseId);
+                course.setName(courseDTO.getName());
+                course.setCredit(courseDTO.getCredit());
+                course.setTerm(persistedTerm);
+
+                Course persistedCourse = courseDao.save(course);
+
+                List<Topic> savedTopics = new ArrayList<>();
+                if (courseDTO.getTopics() != null) {
+                    for (TopicDTO topicDTO : courseDTO.getTopics()) {
+                        Topic topic = mapper.toTopic(topicDTO);
+                        topic.setId(UUID.randomUUID().toString()); // Set ID before saving
+                        topic.setCourse(persistedCourse);
+                        savedTopics.add(topicDao.save(topic));
+                    }
+                }
+
+                if (courseDTO.getExams() != null) {
+                    for (ExamDTO examDTO : courseDTO.getExams()) {
+                        Exam exam = mapper.toExam(examDTO);
+                        exam.setId(UUID.randomUUID().toString()); // Set ID before saving
+                        exam.setCourse(persistedCourse);
+                        examDao.save(exam);
+                    }
+                }
+
+                if (courseDTO.getAssignments() != null) {
+                    for (AssignmentDTO assignmentDTO : courseDTO.getAssignments()) {
+                        Assignment assignment = mapper.dtoToAssignment(assignmentDTO);
+                        assignment.setId(UUID.randomUUID().toString()); // Set ID before saving
+                        assignment.setCourse(persistedCourse);
+
+                        if (assignmentDTO.getAssociatedTopicIds() != null && !assignmentDTO.getAssociatedTopicIds().isEmpty()) {
+                            List<Topic> topicsToAssociate = savedTopics.stream()
+                                    .filter(topic -> assignmentDTO.getAssociatedTopicIds().contains(topic.getId()))
+                                    .collect(Collectors.toList());
+                            assignment.setAssociatedTopics(topicsToAssociate);
+                        }
+                        assignmentDao.save(assignment);
+                    }
+                }
+            }
+        }
+
+        for (AvailabilityDTO availabilityDTO : dto.getAvailabilities()) {
+            Availability availability = Availability.builder()
+                    .user(user)
+                    .date(availabilityDTO.getDate())
+                    .startTime(availabilityDTO.getStartTime())
+                    .endTime(availabilityDTO.getEndTime())
+                    .build();
+            availabilityDao.save(availability);
+        }
+    }
 
     @Override
     @Transactional // Ensure transactions for operations involving multiple DAOs
@@ -169,21 +253,6 @@ public class StudySetupServiceImpl implements StudySetupService {
 
             Course savedCourse = courseDao.save(course);
             savedCourses.add(savedCourse);
-
-            // Handle nested entities (topics, assignments, exams)
-            // For simplicity, this example will just delete and re-create them.
-            // A more robust solution might involve comparing and updating existing ones.
-
-            // Delete existing sub-entities for this course before saving new ones
-            topicDao.deleteByCourse(savedCourse);
-            assignmentDao.deleteByCourse(savedCourse);
-            examDao.deleteByCourse(savedCourse);
-
-            // Save new sub-entities
-            Map<String, Topic> topicMap = new HashMap<>(); // Re-create map for new topics
-            saveTopics(courseDTO.getTopics(), savedCourse);
-            saveExams(courseDTO.getExams(), savedCourse);
-            saveAssignments(courseDTO.getAssignments(), savedCourse, topicMap);
 
             // Re-set the collections on the savedCourse to ensure they are up-to-date
             savedCourse.setTopics(topicDao.findByCourse(savedCourse));

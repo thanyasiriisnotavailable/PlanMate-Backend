@@ -1,6 +1,8 @@
-package senior.project.dto;
+package senior.project.dto.plan;
 
 import lombok.*;
+import senior.project.dto.AvailabilityDTO;
+import senior.project.dto.TermResponseDTO;
 
 import java.util.List;
 

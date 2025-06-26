@@ -1,11 +1,16 @@
 package senior.project.util;
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 import senior.project.dto.*;
+import senior.project.dto.plan.ScheduleDTO;
+import senior.project.dto.plan.SessionDTO;
 import senior.project.entity.*;
+import senior.project.entity.plan.Schedule;
+import senior.project.entity.plan.Session;
 
 import java.util.List;
 
@@ -27,10 +32,13 @@ public interface DTOMapper {
     // === Term Mapping ===
     TermResponseDTO toTermDto(Term term);
 
+    @Mapping(target = "user", ignore = true)
+    Term termResponseToTerm(TermRequestDTO dto);
+
     Term toTerm(TermRequestDTO dto);
 
     default Term toTerm(TermRequestDTO dto, User user) {
-        Term term = toTerm(dto);
+        Term term = termResponseToTerm(dto);
         term.setUser(user);
         return term;
     }
@@ -70,6 +78,13 @@ public interface DTOMapper {
                 .credit(dto.getCredit())
                 .term(term)
                 .build();
+    }
+
+    @AfterMapping
+    default void establishTermCourseRelationship(TermResponseDTO dto, @MappingTarget Term term) {
+        if (term.getCourses() != null) {
+            term.getCourses().forEach(course -> course.setTerm(term));
+        }
     }
 
     // Topic
@@ -112,4 +127,21 @@ public interface DTOMapper {
     AvailabilityDTO toAvailabilityDto(Availability availability);
     Availability toAvailability(AvailabilityDTO dto);
     List<AvailabilityDTO> toAvailabilityDtoList(List<Availability> list);
+
+    ScheduleDTO toScheduleDto(Schedule latest);
+
+    Session toSession(SessionDTO sDto);
+
+
+    Term toTerm(TermResponseDTO term, User user);
+
+    @Mapping(target = "term", ignore = true)
+    @Mapping(target = "topics", ignore = true)
+    @Mapping(target = "assignments", ignore = true)
+    @Mapping(target = "exams", ignore = true)
+    Course responsetoCourse(CourseResponseDTO courseDTO);
+
+    @Mapping(target = "course", ignore = true)
+    @Mapping(target = "associatedTopics", ignore = true)
+    Assignment dtoToAssignment(AssignmentDTO assignmentDTO);
 }

@@ -2,6 +2,7 @@ package senior.project.service;
 
 import jakarta.transaction.Transactional;
 import senior.project.dto.*;
+import senior.project.dto.plan.StudySetupResponseDTO;
 
 import java.util.List;
 
@@ -21,4 +22,6 @@ public interface StudySetupService {
     StudySetupResponseDTO getStudySetup();
 
     CourseResponseDTO updateCourseDetails(Long termId, String courseCode, CourseResponseDTO details);
+
+    void processStudySetup(StudySetupResponseDTO dto);
 }

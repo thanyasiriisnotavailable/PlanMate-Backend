@@ -1,6 +1,7 @@
-package senior.project.dto;
+package senior.project.dto.plan;
 
 import lombok.*;
+import senior.project.dto.*;
 
 import java.util.List;
 
