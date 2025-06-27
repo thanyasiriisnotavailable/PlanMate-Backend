@@ -9,7 +9,7 @@ import senior.project.dao.UserDao;
 import senior.project.dao.CourseDao;
 import senior.project.dao.TopicDao;
 import senior.project.dto.plan.SessionDTO;
-import senior.project.dto.plan.StudySetupResponseDTO;
+import senior.project.dto.plan.StudySetupDTO;
 import senior.project.entity.plan.Schedule;
 import senior.project.entity.plan.Session;
 import senior.project.entity.User;
@@ -73,12 +73,12 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     @Override
-    public ScheduleDTO generateScheduleFromFastAPI(StudySetupResponseDTO setupDTO) {
+    public ScheduleDTO generateScheduleFromFastAPI(StudySetupDTO setupDTO) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<StudySetupResponseDTO> request = new HttpEntity<>(setupDTO, headers);
+        HttpEntity<StudySetupDTO> request = new HttpEntity<>(setupDTO, headers);
 
         try {
             ResponseEntity<ScheduleDTO> response = restTemplate.exchange(

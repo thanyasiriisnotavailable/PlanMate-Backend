@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.*;
-import senior.project.dto.plan.StudySetupResponseDTO;
+import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.StudySetupService;
 
 import java.util.List;
@@ -19,15 +19,15 @@ public class StudySetupController {
     private final StudySetupService studySetupService;
 
     @PostMapping
-    public ResponseEntity<Void> setupStudyPlan(@RequestBody StudySetupResponseDTO dto) {
+    public ResponseEntity<Void> setupStudyPlan(@RequestBody StudySetupDTO dto) {
         studySetupService.processStudySetup(dto);
         return ResponseEntity.ok().build();
     }
 
     // GET: Get full study setup
     @GetMapping
-    public ResponseEntity<StudySetupResponseDTO> getStudySetup() {
-        StudySetupResponseDTO dto = studySetupService.getStudySetup();
+    public ResponseEntity<StudySetupDTO> getStudySetup() {
+        StudySetupDTO dto = studySetupService.getStudySetup();
         return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
 

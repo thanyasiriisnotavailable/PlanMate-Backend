@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.plan.ScheduleDTO;
-import senior.project.dto.plan.StudySetupResponseDTO;
+import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.ScheduleService;
 import senior.project.service.StudySetupService;
 
@@ -33,7 +33,7 @@ public class AIGeneratePlanController {
     @PostMapping("/generate")
     public ResponseEntity<ScheduleDTO> generateScheduleFromFastAPI() {
         // Load the existing StudySetupDTO from DB
-        StudySetupResponseDTO setupDTO = studySetupService.getStudySetup();
+        StudySetupDTO setupDTO = studySetupService.getStudySetup();
         if (setupDTO == null) {
             return ResponseEntity.badRequest().build();
         }

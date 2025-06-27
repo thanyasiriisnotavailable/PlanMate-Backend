@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.*;
 import senior.project.dto.*;
-import senior.project.dto.plan.StudySetupResponseDTO;
+import senior.project.dto.plan.StudySetupDTO;
 import senior.project.entity.*;
 import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
@@ -30,7 +30,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public void processStudySetup(StudySetupResponseDTO dto) {
+    public void processStudySetup(StudySetupDTO dto) {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
 
@@ -523,7 +523,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public StudySetupResponseDTO getStudySetup() {
+    public StudySetupDTO getStudySetup() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = fetchUser();
         Term term = termDao.findByUser(user);
@@ -544,7 +544,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         term.setCourses(courses);
 
-        return StudySetupResponseDTO.builder()
+        return StudySetupDTO.builder()
                 .userUid(userUid)
                 .term(mapper.toTermDto(term))
                 .availabilities(mapper.toAvailabilityDtoList(availabilityDao.findByUser(user)))

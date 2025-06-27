@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StudySetupResponseDTO {
+public class StudySetupDTO {
     private String userUid;
     private TermResponseDTO term;
     private List<AvailabilityDTO> availabilities;
