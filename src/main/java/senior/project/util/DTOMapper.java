@@ -45,13 +45,8 @@ public interface DTOMapper {
 
     // === Course Mapping ===
 
-    @Mapping(target = "courseCode", source = "courseId.courseCode")
-    @Mapping(target = "name", source = "name")
-    @Mapping(target = "credit", source = "credit")
-    CourseBaseDTO toCourseBaseDto(Course course);
-
     @Mapping(target = "courseId", source = "courseId")
-    @Mapping(target = "courseCode", source = "courseId.courseCode")
+    @Mapping(target = "courseCode", source = "courseCode")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "credit", source = "credit")
     @Mapping(target = "topics", source = "topics")
@@ -73,7 +68,7 @@ public interface DTOMapper {
         if (dto == null || term == null || term.getTermId() == null) return null;
 
         return Course.builder()
-                .courseId(new CourseId(term.getTermId(), dto.getCourseCode()))
+                .courseCode(dto.getCourseCode())
                 .name(dto.getName())
                 .credit(dto.getCredit())
                 .term(term)

@@ -1,7 +1,6 @@
 package senior.project.dto;
 
 import lombok.*;
-import senior.project.entity.CourseId;
 import senior.project.enums.ExamType;
 
 @Data
@@ -16,5 +15,5 @@ public class TopicDTO {
     private Long estimatedStudyTime;
     private ExamType examType;
 
-    private CourseId courseId;
+    private Long courseId;
 }

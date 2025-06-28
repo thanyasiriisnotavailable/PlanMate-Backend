@@ -90,12 +90,11 @@ public class StudySetupController {
     }
 
     // DELETE: Delete a specific course
-    @DeleteMapping("/terms/{termId}/courses/{courseCode}")
+    @DeleteMapping("/terms/courses/{courseId}")
     public ResponseEntity<Void> deleteCourse(
-            @PathVariable Long termId,
-            @PathVariable String courseCode) {
+            @PathVariable Long courseId) {
         try {
-            studySetupService.deleteCourse(termId, courseCode);
+            studySetupService.deleteCourse(courseId);
             return ResponseEntity.noContent().build(); // 204 No Content for successful deletion
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -104,25 +103,23 @@ public class StudySetupController {
         }
     }
 
-    @GetMapping("/terms/{termId}/courses/{courseCode}/details")
-    public ResponseEntity<CourseResponseDTO> getCourseDetails(
-            @PathVariable Long termId,
-            @PathVariable String courseCode) {
-        try {
-            // You'll need to implement this method in your StudySetupService
-            CourseResponseDTO details = studySetupService.getCourseDetails(termId, courseCode);
-            return ResponseEntity.ok(details);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-    }
+//    @GetMapping("/terms/courses/{courseId}/details")
+//    public ResponseEntity<CourseResponseDTO> getCourseDetails(
+//            @PathVariable Long courseId) {
+//        try {
+//            CourseResponseDTO details = studySetupService.getCourseDetails(courseId);
+//            return ResponseEntity.ok(details);
+//        } catch (NoSuchElementException e) {
+//            return ResponseEntity.notFound().build();
+//        } catch (SecurityException e) {
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+//        }
+//    }
 
-    @PutMapping("/courses/{courseCode}/details")
+    @PutMapping("/courses/details")
     public ResponseEntity<CourseResponseDTO> updateCourseDetails(
             @RequestBody CourseResponseDTO details) {
-        CourseResponseDTO updated = studySetupService.updateCourseDetails(details.getCourseId().getTermId(), details.getCourseId().getCourseCode(), details);
+        CourseResponseDTO updated = studySetupService.updateCourseDetails(details);
         return ResponseEntity.ok(updated);
     }
 

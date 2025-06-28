@@ -2,7 +2,6 @@ package senior.project.dto;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import senior.project.entity.CourseId;
 
 import java.util.List;
 
@@ -12,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 public class CourseResponseDTO extends CourseBaseDTO {
-    private CourseId courseId;
+    private Long courseId;
     private List<TopicDTO> topics;
     private List<AssignmentDTO> assignments;
     private List<ExamDTO> exams;

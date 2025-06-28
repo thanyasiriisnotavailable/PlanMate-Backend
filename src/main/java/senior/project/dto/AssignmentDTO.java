@@ -1,7 +1,6 @@
 package senior.project.dto;
 
 import lombok.*;
-import senior.project.entity.CourseId;
 import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
@@ -21,5 +20,5 @@ public class AssignmentDTO {
     private Boolean completed;
     private List<String> associatedTopicIds;
 
-    private CourseId courseId;
+    private Long courseId;
 }

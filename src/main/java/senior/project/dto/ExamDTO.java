@@ -1,7 +1,6 @@
 package senior.project.dto;
 
 import lombok.*;
-import senior.project.entity.CourseId;
 import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
@@ -17,5 +16,5 @@ public class ExamDTO {
     private String startTime;
     private String endTime;
 
-    private CourseId courseId;
+    private Long courseId;
 }

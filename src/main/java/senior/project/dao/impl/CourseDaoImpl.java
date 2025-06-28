@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.CourseDao;
 import senior.project.entity.Course;
-import senior.project.entity.CourseId;
 import senior.project.entity.Term;
 import senior.project.repository.CourseRepository;
 
@@ -33,8 +32,8 @@ public class CourseDaoImpl implements CourseDao {
     }
 
     @Override
-    public Course findById(CourseId courseId) {
-        return courseRepository.findByCourseId(courseId);
+    public Course findById(Long courseId) {
+        return courseRepository.findById(courseId).orElse(null);
     }
 
     @Override

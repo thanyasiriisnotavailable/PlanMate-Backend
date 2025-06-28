@@ -13,15 +13,15 @@ public interface StudySetupService {
     TermResponseDTO updateTerm(TermRequestDTO request, Long id);
 
     List<CourseResponseDTO> saveAllCourses(Long termId, List<CourseResponseDTO> courseDTOs);
-    void deleteCourse(Long termId, String courseCode);
+    void deleteCourse(Long courseId);
 
     @Transactional
-    CourseResponseDTO getCourseDetails(Long termId, String courseCode);
+    CourseResponseDTO getCourseDetails(Long courseId);
 
 //    void saveAvailabilities(String userUid, List<AvailabilityDTO> availabilityDTOs);
     StudySetupDTO getStudySetup();
 
-    CourseResponseDTO updateCourseDetails(Long termId, String courseCode, CourseResponseDTO details);
+    CourseResponseDTO updateCourseDetails(CourseResponseDTO details);
 
     void processStudySetup(StudySetupDTO dto);
 }

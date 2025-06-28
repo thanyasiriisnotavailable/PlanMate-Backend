@@ -16,15 +16,15 @@ import java.util.List;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Course {
 
-    @EmbeddedId
-    @EqualsAndHashCode.Include
-    private CourseId courseId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long courseId;
 
+    private String courseCode;
     private String name;
     private Long credit;
 
-    @MapsId("termId")
-    @ManyToOne(optional = false)
+    @ManyToOne()
     @JoinColumn(name = "term_id")
     @ToString.Exclude
     private Term term;

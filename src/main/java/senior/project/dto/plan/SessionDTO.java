@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import senior.project.entity.CourseId;
 
 import java.util.Date;
 
@@ -14,7 +13,7 @@ import java.util.Date;
 @Builder
 public class SessionDTO {
     private String sessionId;
-    private CourseId courseId;
+    private Long courseId;
     private String topicId;
     private Date date;
     private String start;

@@ -45,18 +45,7 @@ public class StudySetupServiceImpl implements StudySetupService {
             for (CourseResponseDTO courseDTO : dto.getTerm().getCourses()) {
                 Course course = new Course();
 
-                // ============================ BUG FIX AREA ============================
-                // The error "Column 'course_code' cannot be null" was caused by trying to
-                // access the course code via `getCourseCode()` when the incoming JSON field
-                // is named "id".
-                //
-                // Corrected Logic:
-                // Changed `courseDTO.getCourseCode()` to `courseDTO.getId()` to correctly
-                // retrieve the value (e.g., "C101") from the DTO.
-                CourseId courseId = new CourseId(persistedTerm.getTermId(), courseDTO.getCourseCode());
-                // ======================================================================
-
-                course.setCourseId(courseId);
+                course.setCourseCode(course.getCourseCode());
                 course.setName(courseDTO.getName());
                 course.setCredit(courseDTO.getCredit());
                 course.setTerm(persistedTerm);
@@ -214,15 +203,16 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         List<Course> savedCourses = new ArrayList<>();
         List<Course> existingCoursesInTerm = courseDao.findByTerm(term);
-        Set<CourseId> incomingCourseIds = courseDTOs.stream()
-                .map(dto -> new CourseId(termId, dto.getCourseCode()))
+
+        // Collect incoming course IDs
+        Set<Long> incomingCourseIds = courseDTOs.stream()
+                .map(CourseResponseDTO::getCourseId) // <-- uses Long courseId
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Delete courses that are in the database but not in the incoming DTO list
+        // Delete courses that exist in DB but not in the incoming list
         for (Course existingCourse : existingCoursesInTerm) {
-            CourseId existingCourseId = existingCourse.getCourseId();
-            if (!incomingCourseIds.contains(existingCourseId)) {
-                // Perform cascade delete if relationships are configured. Otherwise, delete related entities manually.
+            if (!incomingCourseIds.contains(existingCourse.getCourseId())) {
                 topicDao.deleteByCourse(existingCourse);
                 assignmentDao.deleteByCourse(existingCourse);
                 examDao.deleteByCourse(existingCourse);
@@ -230,56 +220,45 @@ public class StudySetupServiceImpl implements StudySetupService {
             }
         }
 
-
         for (CourseResponseDTO courseDTO : courseDTOs) {
-            // Ensure the courseCode is present
             if (courseDTO.getCourseCode() == null || courseDTO.getCourseCode().trim().isEmpty()) {
                 throw new IllegalArgumentException("Course code cannot be empty for course: " + courseDTO.getName());
             }
 
-            CourseId courseId = new CourseId(termId, courseDTO.getCourseCode());
-            Optional<Course> existingCourseOpt = Optional.ofNullable(courseDao.findById(courseId));
             Course course;
-
-            if (existingCourseOpt.isPresent()) {
-                // Update existing course
-                course = existingCourseOpt.get();
-                mapper.updateCourseFromDto(courseDTO, course); // Use MapStruct to update properties
+            if (courseDTO.getCourseId() != null) {
+                course = courseDao.findById(courseDTO.getCourseId());
+                if (course != null) {
+                    mapper.updateCourseFromDto(courseDTO, course);
+                } else {
+                    // ID provided but not found — could be stale or invalid
+                    System.err.println("[WARNING] Course ID not found in DB: " + courseDTO.getCourseId() + " — creating new one.");
+                    course = mapper.toCourse(courseDTO, term);
+                }
             } else {
-                // Create new course
-                course = mapper.toCourse(courseDTO, term); // Use default mapper for creation
+                // No ID = new course
+                course = mapper.toCourse(courseDTO, term);
             }
-            course.setTerm(term); // Ensure the term is set
 
+            course.setTerm(term); // Ensure relationship
             Course savedCourse = courseDao.save(course);
             savedCourses.add(savedCourse);
 
-            // Re-set the collections on the savedCourse to ensure they are up-to-date
+            // Reload child collections
             savedCourse.setTopics(topicDao.findByCourse(savedCourse));
             savedCourse.setAssignments(assignmentDao.findByCourse(savedCourse));
             savedCourse.setExams(examDao.findByCourse(savedCourse));
         }
+
         return mapper.toCourseResponseDtoList(savedCourses);
     }
 
     @Override
     @Transactional
-    public void deleteCourse(Long termId, String courseCode) {
-        Term term = termDao.findById(termId)
-                .orElseThrow(() -> new NoSuchElementException("Term not found with ID: " + termId));
-
+    public void deleteCourse(Long courseId) {
         String userUid = SecurityUtil.getAuthenticatedUid();
-        if (!term.getUser().getUid().equals(userUid)) {
-            throw new SecurityException("Unauthorized: Cannot delete courses for another user's term.");
-        }
 
-        CourseId courseId = new CourseId(termId, courseCode);
         Course courseToDelete = courseDao.findById(courseId);
-
-        // Ensure the course belongs to the specified term (already covered by fetching term first)
-        if (!courseToDelete.getTerm().getTermId().equals(termId)) {
-            throw new IllegalArgumentException("Course does not belong to the specified term.");
-        }
 
         // Delete child entities first if not using cascade delete in JPA
         topicDao.deleteByCourse(courseToDelete);
@@ -291,23 +270,10 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public CourseResponseDTO getCourseDetails(Long termId, String courseCode) {
-        Term term = termDao.findById(termId)
-                .orElseThrow(() -> new NoSuchElementException("Term not found with ID: " + termId));
-
-        // Ensure the term belongs to the authenticated user
+    public CourseResponseDTO getCourseDetails(Long courseId) {
         String userUid = SecurityUtil.getAuthenticatedUid();
-        if (!term.getUser().getUid().equals(userUid)) {
-            throw new SecurityException("Unauthorized: Cannot access another user's term details.");
-        }
 
-        CourseId courseId = new CourseId(termId, courseCode);
-        Course course = courseDao.findById(courseId); // Assumes findById returns directly, or needs .orElseThrow()
-        // Make sure your CourseDao.findById(CourseId) exists and returns a Course
-
-        if (course == null) {
-            throw new NoSuchElementException("Course not found with code: " + courseCode + " in term: " + termId);
-        }
+        Course course = courseDao.findById(courseId);
 
         // Eagerly load sub-entities if not already done by JPA config (e.g., fetch=EAGER or with @Transactional and then accessing them)
         // If not eagerly fetched by default, explicitly load them to avoid N+1 issues or lazy initialization exceptions.
@@ -327,16 +293,9 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public CourseResponseDTO updateCourseDetails(Long termId, String courseCode, CourseResponseDTO details) {
-        System.out.println("\n\n--- [START] updateCourseDetails for TermID: " + termId + ", CourseCode: " + courseCode + " ---");
+    public CourseResponseDTO updateCourseDetails(CourseResponseDTO details) {
+        Course course = courseDao.findById(details.getCourseId());
 
-        CourseId courseId = new CourseId(termId, courseCode);
-        Course course = courseDao.findById(courseId);
-
-        if (course == null) {
-            System.err.println("[FATAL] Course could not be found with TermID: " + termId + " and CourseCode: " + courseCode);
-            throw new NoSuchElementException("Course not found with code: " + courseCode);
-        }
         System.out.println("[DEBUG] Found course: " + course.getName());
 
         String userUid = SecurityUtil.getAuthenticatedUid();
@@ -356,7 +315,7 @@ public class StudySetupServiceImpl implements StudySetupService {
         System.out.println("[SUCCESS] Transaction flushed.");
 
         // Reload the course to ensure all collections are fresh before mapping to DTO
-        Course updatedCourse = courseDao.findById(courseId);
+        Course updatedCourse = courseDao.findById(details.getCourseId());
         updatedCourse.getTopics().size();       // Trigger lazy loading
         updatedCourse.getAssignments().size();  // Trigger lazy loading
         updatedCourse.getExams().size();        // Trigger lazy loading

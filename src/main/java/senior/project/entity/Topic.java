@@ -27,10 +27,5 @@ public class Topic {
     private ExamType examType;
 
     @ManyToOne
-    @JoinColumns({
-            @JoinColumn(name = "term_id"),
-            @JoinColumn(name = "course_code")
-    })
-    @ToString.Exclude
     private Course course;
 }
