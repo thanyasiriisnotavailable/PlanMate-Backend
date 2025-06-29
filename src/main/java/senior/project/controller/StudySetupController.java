@@ -77,16 +77,8 @@ public class StudySetupController {
     public ResponseEntity<List<CourseResponseDTO>> saveAllCourses(
             @PathVariable Long termId,
             @RequestBody List<CourseResponseDTO> course) {
-        try {
-            List<CourseResponseDTO> savedCourses = studySetupService.saveAllCourses(termId, course);
-            return ResponseEntity.ok(savedCourses);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<CourseResponseDTO> savedCourses = studySetupService.saveAllCourses(termId, course);
+        return ResponseEntity.ok(savedCourses);
     }
 
     // DELETE: Delete a specific course
@@ -123,17 +115,17 @@ public class StudySetupController {
         return ResponseEntity.ok(updated);
     }
 
+    // GET: Get all availabilities for current user
+    @GetMapping("/availabilities")
+    public ResponseEntity<List<AvailabilityDTO>> getAvailabilities() {
+        List<AvailabilityDTO> availabilities = studySetupService.getAvailabilities();
+        return ResponseEntity.ok(availabilities);
+    }
 
     // POST: Save availability list
-    // Consider if this should also be a PUT for updates, or if it's always an overwrite.
-//    @PostMapping("/availabilities")
-//    public ResponseEntity<Void> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
-//        String uid = getAuthenticatedUid();
-//        try {
-//            studySetupService.saveAvailabilities(uid, availabilityDTOs);
-//            return ResponseEntity.ok().build();
-//        } catch (NoSuchElementException e) {
-//            return ResponseEntity.badRequest().build(); // User not found, or similar
-//        }
-//    }
+    @PostMapping("/availabilities")
+    public ResponseEntity<List<AvailabilityDTO>> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
+        List<AvailabilityDTO> availabilities = studySetupService.saveAvailabilities(availabilityDTOs);
+        return ResponseEntity.ok(availabilities);
+    }
 }

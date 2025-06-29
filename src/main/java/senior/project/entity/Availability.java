@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "availabilities")
@@ -21,8 +22,8 @@ public class Availability {
     private Long id;
 
     private LocalDate date;
-    private String startTime; // e.g., "14:00"
-    private String endTime;   // e.g., "16:00"
+    private LocalTime startTime; // e.g., "14:00"
+    private LocalTime endTime;   // e.g., "16:00"
 
     @ManyToOne
     @ToString.Exclude

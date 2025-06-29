@@ -7,11 +7,11 @@ import senior.project.dao.*;
 import senior.project.dto.*;
 import senior.project.dto.plan.StudySetupDTO;
 import senior.project.entity.*;
+import senior.project.exception.ValidationException;
 import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,7 +45,7 @@ public class StudySetupServiceImpl implements StudySetupService {
             for (CourseResponseDTO courseDTO : dto.getTerm().getCourses()) {
                 Course course = new Course();
 
-                course.setCourseCode(course.getCourseCode());
+                course.setCourseCode(courseDTO.getCourseCode());
                 course.setName(courseDTO.getName());
                 course.setCredit(courseDTO.getCredit());
                 course.setTerm(persistedTerm);
@@ -147,6 +147,15 @@ public class StudySetupServiceImpl implements StudySetupService {
     @Override
     @Transactional
     public TermResponseDTO saveTerm(TermRequestDTO termDTO) {
+        if (termDTO.getName().isEmpty()) {
+            throw new ValidationException("The name of term cannot be empty.");
+        }
+        if (termDTO.getStartDate().isAfter(termDTO.getEndDate())) {
+            throw new ValidationException("Start date cannot be after end date.");
+        } else if (termDTO.getStartDate().isEqual(termDTO.getEndDate())) {
+            throw new ValidationException("Start date cannot be equal to end date.");
+        }
+
         User user = fetchUser();
         Term term = mapper.toTerm(termDTO, user);
         // New terms don't have an ID yet, so they are always created.
@@ -169,8 +178,8 @@ public class StudySetupServiceImpl implements StudySetupService {
         }
 
         term.setName(request.getName());
-        term.setStartDate(LocalDate.parse(request.getStartDate()));
-        term.setEndDate(LocalDate.parse(request.getEndDate()));
+        term.setStartDate(request.getStartDate());
+        term.setEndDate(request.getEndDate());
 
         Term saved = termDao.save(term);
         // Re-fetch courses and sub-entities to return a complete DTO after update
@@ -210,6 +219,9 @@ public class StudySetupServiceImpl implements StudySetupService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+        Set<String> seenCodes = new HashSet<>();
+        Set<String> seenNames = new HashSet<>();
+
         // Delete courses that exist in DB but not in the incoming list
         for (Course existingCourse : existingCoursesInTerm) {
             if (!incomingCourseIds.contains(existingCourse.getCourseId())) {
@@ -221,8 +233,22 @@ public class StudySetupServiceImpl implements StudySetupService {
         }
 
         for (CourseResponseDTO courseDTO : courseDTOs) {
-            if (courseDTO.getCourseCode() == null || courseDTO.getCourseCode().trim().isEmpty()) {
-                throw new IllegalArgumentException("Course code cannot be empty for course: " + courseDTO.getName());
+            boolean isNewCourse = courseDTO.getCourseId() == null;
+
+            if (courseDTO.getName() == null || courseDTO.getName().trim().isEmpty() || courseDTO.getCourseCode() == null || courseDTO.getCourseCode().trim().isEmpty()) {
+                throw new ValidationException("Course information cannot be empty.");
+            }
+
+            if (courseDTO.getCredit() == null || courseDTO.getCredit() <= 0) {
+                throw new ValidationException("Invalid course credit.");
+            }
+
+            if (!seenCodes.add(courseDTO.getCourseCode())) {
+                throw new ValidationException("Duplicated course code: " + courseDTO.getCourseCode());
+            }
+
+            if (!seenNames.add(courseDTO.getName())) {
+                throw new ValidationException("Duplicated ourse name: " + courseDTO.getName());
             }
 
             Course course;
@@ -462,23 +488,52 @@ public class StudySetupServiceImpl implements StudySetupService {
         System.out.println("[SUCCESS] Assignment saving process complete.");
     }
 
-//    @Override
-//    @Override
-//    @Transactional
-//    public void saveAvailabilities(String userUid, List<AvailabilityDTO> availabilityDTOs) {
-//        User user = fetchUser(userUid);
-//        // Clear existing availabilities for the user to support "overwrite" behavior
-//        availabilityDao.deleteByUser(user);
-//        for (AvailabilityDTO dto : availabilityDTOs) {
-//            Availability availability = Availability.builder()
-//                    .user(user)
-//                    .date(dto.getDate())
-//                    .startTime(dto.getStartTime())
-//                    .endTime(dto.getEndTime())
-//                    .build();
-//            availabilityDao.save(availability);
-//        }
-//    }
+    @Override
+    @Transactional
+    public List<AvailabilityDTO> saveAvailabilities(List<AvailabilityDTO> availabilityDTOs) {
+        User user = fetchUser();
+
+        // Clear existing availabilities for the user to support "overwrite" behavior
+        availabilityDao.deleteByUser(user);
+
+        List<AvailabilityDTO> savedDTOs = new ArrayList<>();
+
+        for (AvailabilityDTO dto : availabilityDTOs) {
+            Availability availability = Availability.builder()
+                    .user(user)
+                    .date(dto.getDate())
+                    .startTime(dto.getStartTime())
+                    .endTime(dto.getEndTime())
+                    .build();
+
+            Availability saved = availabilityDao.save(availability);
+
+            // Map back to DTO (assuming a mapper is available)
+            AvailabilityDTO savedDTO = AvailabilityDTO.builder()
+                    .date(saved.getDate())
+                    .startTime(saved.getStartTime())
+                    .endTime(saved.getEndTime())
+                    .build();
+
+            savedDTOs.add(savedDTO);
+        }
+
+        return savedDTOs;
+    }
+
+    @Override
+    @Transactional
+    public List<AvailabilityDTO> getAvailabilities() {
+        User user = fetchUser();
+        List<Availability> availabilities = availabilityDao.findByUser(user);
+        return availabilities.stream()
+                .map(a -> AvailabilityDTO.builder()
+                        .date(a.getDate())
+                        .startTime(a.getStartTime())
+                        .endTime(a.getEndTime())
+                        .build())
+                .collect(Collectors.toList());
+    }
 
     @Override
     @Transactional

@@ -2,6 +2,7 @@ package senior.project.dto;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -10,6 +11,6 @@ import java.util.List;
 @Builder
 public class TermRequestDTO {
     private String name; // e.g., "Spring 2025"
-    private String startDate; // e.g., "2025-01-10"
-    private String endDate;   // e.g., "2025-05-20"
+    private LocalDate startDate; // e.g., "2025-01-10"
+    private LocalDate endDate;   // e.g., "2025-05-20"
 }

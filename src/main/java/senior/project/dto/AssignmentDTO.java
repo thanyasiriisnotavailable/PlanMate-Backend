@@ -1,9 +1,11 @@
 package senior.project.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import senior.project.enums.ExamType;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -13,8 +15,13 @@ import java.util.List;
 public class AssignmentDTO {
     private String id;
     private String name;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dueDate;
-    private String dueTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime dueTime;
+
     private Long estimatedTime;
     private ExamType examType;
     private Boolean completed;

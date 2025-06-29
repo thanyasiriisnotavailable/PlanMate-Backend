@@ -1,8 +1,10 @@
 package senior.project.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -10,7 +12,12 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AvailabilityDTO {
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
-    private String startTime;
-    private String endTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime startTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
 }
