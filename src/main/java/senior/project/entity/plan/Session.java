@@ -6,9 +6,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import senior.project.entity.Course;
-import senior.project.entity.Topic;
+import senior.project.entity.Exam;
+import senior.project.entity.plan.Schedule;
+import senior.project.enums.SessionType;
 
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "sessions")
@@ -17,19 +20,19 @@ import java.util.Date;
 @AllArgsConstructor
 @Builder
 public class Session {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     private String sessionId;
-    private String type; // "study", "review", "assignment"
-    private Date date;
-    private String start;
-    private String end;
-    private Long durationMinutes;
 
+    private String topic;
+    private String title;
+    private LocalDate date;
+    private LocalTime start;
+    private LocalTime end;
+    private Long duration;
     private Boolean completed = false;
+
+    @Enumerated(EnumType.STRING)
+    private SessionType type; // "study", "review", "assignment"
 
     @ManyToOne
     private Schedule schedule;
@@ -37,6 +40,7 @@ public class Session {
     @ManyToOne
     private Course course;
 
-    @ManyToOne(optional = true)
-    private Topic topic;
+    @ManyToOne
+    @JoinColumn(name = "exam_id")
+    private Exam exam;
 }

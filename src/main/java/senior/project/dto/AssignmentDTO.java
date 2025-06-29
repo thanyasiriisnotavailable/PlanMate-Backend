@@ -16,7 +16,7 @@ public class AssignmentDTO {
     private String id;
     private String name;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")    
     private LocalDate dueDate;
 
     @JsonFormat(pattern = "HH:mm")

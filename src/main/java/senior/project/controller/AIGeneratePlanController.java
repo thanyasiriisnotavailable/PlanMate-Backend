@@ -2,8 +2,8 @@ package senior.project.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import senior.project.dto.plan.GeneratePlanResponseDTO;
 import senior.project.dto.plan.ScheduleDTO;
 import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.ScheduleService;
@@ -25,13 +25,13 @@ public class AIGeneratePlanController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveSchedule(@RequestBody ScheduleDTO dto) {
+    public ResponseEntity<Void> saveSchedule(@RequestBody GeneratePlanResponseDTO dto) {
         scheduleService.saveSchedule(dto);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<ScheduleDTO> generateScheduleFromFastAPI() {
+    public ResponseEntity<GeneratePlanResponseDTO> generateScheduleFromFastAPI() {
         // Load the existing StudySetupDTO from DB
         StudySetupDTO setupDTO = studySetupService.getStudySetup();
         if (setupDTO == null) {
@@ -39,7 +39,7 @@ public class AIGeneratePlanController {
         }
 
         // Call FastAPI microservice to get schedule
-        ScheduleDTO generated = scheduleService.generateScheduleFromFastAPI(setupDTO);
+        GeneratePlanResponseDTO generated = scheduleService.generateScheduleFromFastAPI(setupDTO);
         if (generated == null) {
             return ResponseEntity.status(502).build(); // Bad Gateway if FastAPI fails
         }

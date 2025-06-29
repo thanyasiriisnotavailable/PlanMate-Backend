@@ -20,7 +20,7 @@ public class StudyPreferenceDaoImpl implements StudyPreferenceDao {
     }
 
     @Override
-    public Optional<StudyPreference> findByUserUid(String userUid) {
-        return repository.findById(userUid);
+    public StudyPreference findByUserUid(String userUid) {
+        return repository.findById(userUid).orElse(null);
     }
 }

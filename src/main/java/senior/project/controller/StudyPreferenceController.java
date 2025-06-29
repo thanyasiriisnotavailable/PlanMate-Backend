@@ -26,9 +26,8 @@ public class StudyPreferenceController {
 
     @GetMapping
     public ResponseEntity<StudyPreferenceDTO> get() {
-        return preferenceService.getPreference()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        StudyPreferenceDTO preferenceDTO = preferenceService.getPreference();
+        return ResponseEntity.ok(preferenceDTO);
     }
 
     @PutMapping

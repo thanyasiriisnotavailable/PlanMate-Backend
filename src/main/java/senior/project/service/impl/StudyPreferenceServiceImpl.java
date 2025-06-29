@@ -22,22 +22,29 @@ public class StudyPreferenceServiceImpl implements StudyPreferenceService {
     private final UserService userService;
     private final DTOMapper mapper;
     @Override
-    public Optional<StudyPreferenceDTO> getPreference() {
+    public StudyPreferenceDTO getPreference() {
         String userUid = SecurityUtil.getAuthenticatedUid();
-        return studyPreferenceDao.findByUserUid(userUid)
-                .map(mapper::toStudyPreferenceDto);
+        StudyPreference preference = studyPreferenceDao.findByUserUid(userUid);
+
+        return Optional.ofNullable(preference)
+                .map(mapper::toStudyPreferenceDto)
+                .orElse(null);
     }
 
     @Override
     public StudyPreferenceDTO saveOrUpdate(StudyPreferenceDTO dto) {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userService.findByUid(userUid);
+        StudyPreference existingPreference = studyPreferenceDao.findByUserUid(userUid);
 
-        StudyPreference preference = studyPreferenceDao.findByUserUid(userUid)
-                .map(existing -> updateFields(existing, dto))
-                .orElseGet(() -> mapper.toStudyPreference(dto, user));
+        StudyPreference preferenceToSave;
+        if (existingPreference != null) {
+            preferenceToSave = updateFields(existingPreference, dto);
+        } else {
+            preferenceToSave = mapper.toStudyPreference(dto, user);
+        }
 
-        StudyPreference saved = studyPreferenceDao.savePreference(preference);
+        StudyPreference saved = studyPreferenceDao.savePreference(preferenceToSave);
         return mapper.toStudyPreferenceDto(saved);
     }
 

@@ -5,6 +5,6 @@ import senior.project.dto.StudyPreferenceDTO;
 import java.util.Optional;
 
 public interface StudyPreferenceService {
-    Optional<StudyPreferenceDTO> getPreference();
+    StudyPreferenceDTO getPreference();
     StudyPreferenceDTO saveOrUpdate(StudyPreferenceDTO dto);
 }

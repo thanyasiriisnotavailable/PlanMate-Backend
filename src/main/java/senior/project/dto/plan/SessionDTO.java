@@ -1,10 +1,14 @@
 package senior.project.dto.plan;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import senior.project.enums.SessionType;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Date;
 
 @Data
@@ -15,10 +19,16 @@ public class SessionDTO {
     private String sessionId;
     private Long courseId;
     private String topicId;
-    private Date date;
-    private String start;
-    private String end;
     private Long durationMinutes;
-    private String type;
+    private SessionType type;
     private Boolean completed;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate date;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime start;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime end;
 }
