@@ -30,6 +30,13 @@ public class ScheduleController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/schedule/{id}")
+    public ResponseEntity<Void> updateSchedule(@PathVariable String id, @RequestBody ScheduleDTO dto) {
+        dto.setId(id); // Set the path param into the DTO
+        scheduleService.updateSchedule(dto);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/generate")
     public ResponseEntity<ScheduleDTO> generateScheduleFromFastAPI() {
         // Load the existing StudySetupDTO from DB

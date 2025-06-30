@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ScheduleDTO {
+    private String id;
     private String generatedAt;
     private ExamType examType;
     private Long termId;

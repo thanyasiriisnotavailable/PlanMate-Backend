@@ -22,6 +22,8 @@ import senior.project.util.SecurityUtil;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +64,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         User user = userDao.findByUid(userUid);
         Term term = termDao.findById(dto.getTermId()).orElse(null);
         Schedule schedule = new Schedule();
+        schedule.setId(dto.getId());
         schedule.setUser(user);
         schedule.setExamType(dto.getExamType());
         schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
@@ -91,6 +94,46 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setSessions(sessions);
         scheduleDao.save(schedule); // Cascade saves sessions
         System.out.println(dto);
+    }
+
+
+    @Override
+    @Transactional
+    public void updateSchedule(ScheduleDTO dto) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+
+        // 1. Find existing schedule for user + term
+        Schedule schedule = (Schedule) scheduleDao.findById(dto.getId()).orElse(null);
+
+        // 2. Clear old sessions (orphan removal should be enabled or delete manually)
+        schedule.getSessions().clear();
+
+        // 3. Set new data
+        schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
+        schedule.setExamType(dto.getExamType());
+
+        List<Session> newSessions = new ArrayList<>();
+        for (SessionDTO sDto : dto.getStudyPlan()) {
+            Session session = mapper.toSession(sDto);
+            session.setIsCompleted(false);
+            session.setSchedule(schedule);
+            session.setIsScheduled(sDto.getIsScheduled());
+
+            if (sDto.getCourseId() != null) {
+                session.setCourse(courseDao.findById(sDto.getCourseId()));
+            }
+            if (sDto.getTopicId() != null) {
+                session.setTopic(topicDao.findById(sDto.getTopicId()));
+            }
+            if (sDto.getAssignmentId() != null) {
+                session.setAssignment(assignmentDao.findById(sDto.getAssignmentId()));
+            }
+
+            newSessions.add(session);
+        }
+
+        schedule.setSessions(newSessions);
+        scheduleDao.save(schedule); // cascade saves sessions
     }
 
     @Override
@@ -123,6 +166,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             ScheduleDTO result = response.getBody();
 
             // 🔽 Set additional fields before saving
+            assert result != null;
             result.setGeneratedAt(LocalDateTime.now().toString()); // or use formatter
             result.setTermId(setupDTO.getTerm().getTermId());
 
