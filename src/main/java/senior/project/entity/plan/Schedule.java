@@ -9,6 +9,7 @@ import senior.project.entity.Term;
 import senior.project.entity.User;
 import senior.project.enums.ExamType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -23,7 +24,9 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String generatedAt;
+    private LocalDateTime generatedAt;
+
+    @Enumerated(EnumType.STRING)
     private ExamType examType;
 
     @ManyToOne

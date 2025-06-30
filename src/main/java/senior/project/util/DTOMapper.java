@@ -7,11 +7,14 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 import senior.project.dto.*;
 import senior.project.dto.plan.ScheduleDTO;
+import senior.project.dto.plan.ScheduleViewDTO;
 import senior.project.dto.plan.SessionDTO;
+import senior.project.dto.plan.SessionViewDTO;
 import senior.project.entity.*;
 import senior.project.entity.plan.Schedule;
 import senior.project.entity.plan.Session;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
@@ -44,7 +47,6 @@ public interface DTOMapper {
     }
 
     // === Course Mapping ===
-
     @Mapping(target = "courseId", source = "courseId")
     @Mapping(target = "courseCode", source = "courseCode")
     @Mapping(target = "name", source = "name")
@@ -56,14 +58,13 @@ public interface DTOMapper {
 
     List<CourseResponseDTO> toCourseResponseDtoList(List<Course> courses);
 
-    @Mapping(target = "courseId", ignore = true) // courseId is part of the path, so don't update directly
-    @Mapping(target = "term", ignore = true) // term is set separately
-    @Mapping(target = "topics", ignore = true) // topics, assignments, exams are handled in service
+    @Mapping(target = "courseId", ignore = true)
+    @Mapping(target = "term", ignore = true)
+    @Mapping(target = "topics", ignore = true)
     @Mapping(target = "assignments", ignore = true)
     @Mapping(target = "exams", ignore = true)
     void updateCourseFromDto(CourseResponseDTO dto, @MappingTarget Course course);
 
-    // Default mapper for creating entity from base DTO
     default Course toCourse(CourseBaseDTO dto, Term term) {
         if (dto == null || term == null || term.getTermId() == null) return null;
 
@@ -115,6 +116,7 @@ public interface DTOMapper {
     Availability toAvailability(AvailabilityDTO dto);
     List<AvailabilityDTO> toAvailabilityDtoList(List<Availability> list);
 
+    // Schedule and Session Mappings
     ScheduleDTO toScheduleDto(Schedule latest);
 
     Session toSession(SessionDTO sDto);
@@ -131,4 +133,67 @@ public interface DTOMapper {
     @Mapping(target = "course", ignore = true)
     @Mapping(target = "associatedTopics", ignore = true)
     Assignment dtoToAssignment(AssignmentDTO assignmentDTO);
+
+    /**
+     * Converts a Schedule entity to its view representation (ScheduleViewDTO).
+     * This method provides a custom implementation using default interface methods.
+     * @param schedule The Schedule entity to convert.
+     * @return A ScheduleViewDTO containing lists of scheduled and unscheduled sessions.
+     */
+    default ScheduleViewDTO toScheduleViewDto(Schedule schedule) {
+        if (schedule == null) {
+            return null;
+        }
+
+        List<SessionViewDTO> scheduledSessions = new ArrayList<>();
+        List<SessionViewDTO> unscheduledSessions = new ArrayList<>();
+
+        // Ensure sessions are not null before iterating
+        if (schedule.getSessions() != null) {
+            for (Session session : schedule.getSessions()) {
+                SessionViewDTO sessionViewDTO = toSessionViewDto(session);
+                if (session.getIsScheduled() != null && session.getIsScheduled()) {
+                    scheduledSessions.add(sessionViewDTO);
+                } else {
+                    unscheduledSessions.add(sessionViewDTO);
+                }
+            }
+        }
+
+        return ScheduleViewDTO.builder()
+                .studyPlan(scheduledSessions)
+                .unscheduledPlan(unscheduledSessions)
+                .build();
+    }
+
+    /**
+     * Converts a Session entity to its view representation (SessionViewDTO).
+     * This method resolves entity IDs into human-readable names and codes.
+     * @param session The Session entity to convert.
+     * @return A SessionViewDTO with detailed information for display.
+     */
+    default SessionViewDTO toSessionViewDto(Session session) {
+        if (session == null) {
+            return null;
+        }
+
+        // Use a null-safe way to get related entity names/codes
+        String courseCode = (session.getCourse() != null) ? session.getCourse().getCourseCode() : null;
+        String topicName = (session.getTopic() != null) ? session.getTopic().getName() : null;
+        String assignmentName = (session.getAssignment() != null) ? session.getAssignment().getName() : null;
+
+        return SessionViewDTO.builder()
+                .sessionId(String.valueOf(session.getSessionId())) // Assuming Session has a Long id
+                .courseCode(courseCode)
+                .topicName(topicName)
+                .assignmentName(assignmentName)
+                .date(session.getDate())
+                .start(session.getStart())
+                .end(session.getEnd())
+                .duration(session.getDuration())
+                .type(session.getType())
+                .isScheduled(session.getIsScheduled())
+                .isCompleted(session.getIsCompleted())
+                .build();
+    }
 }

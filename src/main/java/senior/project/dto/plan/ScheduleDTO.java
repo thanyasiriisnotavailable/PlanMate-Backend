@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import senior.project.entity.Exam;
+import senior.project.enums.ExamType;
 
 import java.util.List;
 
@@ -13,6 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ScheduleDTO {
+    private String generatedAt;
+    private ExamType examType;
+    private Long termId;
+
     @JsonProperty("study_plan")
     private List<SessionDTO> studyPlan;
 

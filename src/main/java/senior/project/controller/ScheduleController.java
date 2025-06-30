@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.plan.ScheduleDTO;
+import senior.project.dto.plan.ScheduleViewDTO;
 import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.ScheduleService;
 import senior.project.service.StudySetupService;
@@ -17,8 +18,8 @@ public class ScheduleController {
     private final StudySetupService studySetupService;
 
     @GetMapping
-    public ResponseEntity<ScheduleDTO> getSchedule() {
-        ScheduleDTO dto = scheduleService.getScheduleForUser();
+    public ResponseEntity<ScheduleViewDTO> getSchedule() {
+        ScheduleViewDTO dto = scheduleService.getSchedule();
         if (dto == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(dto);
     }
