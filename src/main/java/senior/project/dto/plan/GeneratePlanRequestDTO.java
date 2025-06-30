@@ -9,6 +9,6 @@ import senior.project.dto.StudyPreferenceDTO;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GeneratePlanRequestDTO {
-    private StudyPreferenceDTO studyPreferences;
+    private StudyPreferenceDTO studyPreference;
     private StudySetupDTO studySetup;
 }

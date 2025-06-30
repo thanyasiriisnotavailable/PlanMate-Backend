@@ -3,7 +3,6 @@ package senior.project.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import senior.project.dto.plan.GeneratePlanResponseDTO;
 import senior.project.dto.plan.ScheduleDTO;
 import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.ScheduleService;
@@ -25,13 +24,13 @@ public class ScheduleController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveSchedule(@RequestBody GeneratePlanResponseDTO dto) {
+    public ResponseEntity<Void> saveSchedule(@RequestBody ScheduleDTO dto) {
         scheduleService.saveSchedule(dto);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<GeneratePlanResponseDTO> generateScheduleFromFastAPI() {
+    public ResponseEntity<ScheduleDTO> generateScheduleFromFastAPI() {
         // Load the existing StudySetupDTO from DB
         StudySetupDTO setupDTO = studySetupService.getStudySetup();
         if (setupDTO == null) {
@@ -39,7 +38,7 @@ public class ScheduleController {
         }
 
         // Call FastAPI microservice to get schedule
-        GeneratePlanResponseDTO generated = scheduleService.generateScheduleFromFastAPI(setupDTO);
+        ScheduleDTO generated = scheduleService.generateScheduleFromFastAPI(setupDTO);
         if (generated == null) {
             return ResponseEntity.status(502).build(); // Bad Gateway if FastAPI fails
         }

@@ -1,5 +1,6 @@
 package senior.project.dto.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ScheduleDTO {
-    private List<SessionDTO> study_plan;
-    private List<SessionDTO> unscheduled_plan;
+    @JsonProperty("study_plan")
+    private List<SessionDTO> studyPlan;
+
+    @JsonProperty("unscheduled_plan")
+    private List<SessionDTO> unscheduledPlan;
 }

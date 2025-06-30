@@ -5,8 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import senior.project.entity.Assignment;
 import senior.project.entity.Course;
 import senior.project.entity.Exam;
+import senior.project.entity.Topic;
 import senior.project.entity.plan.Schedule;
 import senior.project.enums.SessionType;
 
@@ -22,14 +24,12 @@ import java.time.LocalTime;
 public class Session {
     @Id
     private String sessionId;
-
-    private String topic;
-    private String title;
     private LocalDate date;
-    private LocalTime start;
-    private LocalTime end;
+    private String start;
+    private String end;
     private Long duration;
-    private Boolean completed = false;
+    private Boolean isCompleted;
+    private Boolean isScheduled;
 
     @Enumerated(EnumType.STRING)
     private SessionType type; // "study", "review", "assignment"
@@ -41,6 +41,8 @@ public class Session {
     private Course course;
 
     @ManyToOne
-    @JoinColumn(name = "exam_id")
-    private Exam exam;
+    private Topic topic;
+
+    @ManyToOne
+    private Assignment assignment;
 }

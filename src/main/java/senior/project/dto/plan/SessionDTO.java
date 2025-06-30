@@ -18,17 +18,19 @@ import java.util.Date;
 public class SessionDTO {
     private String sessionId;
     private Long courseId;
-    private String topicId;
-    private Long durationMinutes;
+    private Long duration;
     private SessionType type;
-    private Boolean completed;
+    private Boolean isScheduled;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime start;
 
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime end;
+
+    private String topicId;
+    private String assignmentId;
 }
