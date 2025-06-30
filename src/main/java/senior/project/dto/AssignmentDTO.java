@@ -26,6 +26,4 @@ public class AssignmentDTO {
     private ExamType examType;
     private Boolean completed;
     private List<String> associatedTopicIds;
-
-    private Long courseId;
 }

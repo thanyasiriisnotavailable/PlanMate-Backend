@@ -14,6 +14,4 @@ public class TopicDTO {
     private Long confidence;
     private Long estimatedStudyTime;
     private ExamType examType;
-
-    private Long courseId;
 }

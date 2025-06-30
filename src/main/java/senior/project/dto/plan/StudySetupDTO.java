@@ -11,7 +11,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class StudySetupDTO {
-    private String userUid;
     private TermResponseDTO term;
     private List<AvailabilityDTO> availabilities;
 }

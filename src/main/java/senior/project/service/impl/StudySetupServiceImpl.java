@@ -559,7 +559,6 @@ public class StudySetupServiceImpl implements StudySetupService {
         term.setCourses(courses);
 
         return StudySetupDTO.builder()
-                .userUid(userUid)
                 .term(mapper.toTermDto(term))
                 .availabilities(mapper.toAvailabilityDtoList(availabilityDao.findByUser(user)))
                 .build();

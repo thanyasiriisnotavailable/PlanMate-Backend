@@ -9,7 +9,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class StudyPreferenceDTO {
-    private String userUid;
     private Integer minSessionDuration;
     private Integer maxSessionDuration;
     private List<String> preferredStudyTimes;

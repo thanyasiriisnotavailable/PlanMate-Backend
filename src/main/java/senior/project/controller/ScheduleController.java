@@ -12,7 +12,7 @@ import senior.project.service.StudySetupService;
 @RestController
 @RequestMapping("/schedule")
 @RequiredArgsConstructor
-public class AIGeneratePlanController {
+public class ScheduleController {
 
     private final ScheduleService scheduleService;
     private final StudySetupService studySetupService;

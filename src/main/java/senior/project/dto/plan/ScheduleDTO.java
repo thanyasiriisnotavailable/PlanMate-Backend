@@ -12,6 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ScheduleDTO {
-    private Long id;
     private List<SessionDTO> study_plan;
+    private List<SessionDTO> unscheduled_plan;
 }

@@ -84,24 +84,18 @@ public interface DTOMapper {
 
     // Topic
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "course.courseId", source = "courseId")
     Topic toTopic(TopicDTO dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "course", ignore = true)
     void updateTopicFromDto(TopicDTO dto, @MappingTarget Topic topic);
 
-    @Mapping(target = "courseId", source = "course.courseId")
-    TopicDTO toTopicDto(Topic topic);
-
     List<TopicDTO> toTopicDtoList(List<Topic> list);
 
     // Assignment
     @Mapping(target = "id", source = "dto.id")
-    @Mapping(target = "course.courseId", source = "dto.courseId")
     Assignment toAssignment(AssignmentDTO dto, @MappingTarget Assignment assignment);
 
-    @Mapping(target = "courseId", source = "course.courseId")
     @Mapping(target = "associatedTopicIds", expression = "java(assignment.getAssociatedTopics() != null ? assignment.getAssociatedTopics().stream().map(Topic::getId).toList() : null)")
     AssignmentDTO toAssignmentDto(Assignment assignment);
 
@@ -109,10 +103,8 @@ public interface DTOMapper {
 
     // Exam
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "course.courseId", source = "courseId")
     Exam toExam(ExamDTO dto);
 
-    @Mapping(target = "courseId", source = "course.courseId")
     ExamDTO toExamDto(Exam exam);
 
     void updateExamFromDto(ExamDTO dto, @MappingTarget Exam exam);

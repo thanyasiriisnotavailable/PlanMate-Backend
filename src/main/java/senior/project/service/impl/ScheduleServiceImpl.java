@@ -82,7 +82,6 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         // 2. Create the consolidated request object
         GeneratePlanRequestDTO generationRequest = new GeneratePlanRequestDTO(
-                userUid,
                 preferences,
                 setupDTO
         );
