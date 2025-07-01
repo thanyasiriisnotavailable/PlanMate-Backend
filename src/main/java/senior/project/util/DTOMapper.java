@@ -117,10 +117,42 @@ public interface DTOMapper {
     List<AvailabilityDTO> toAvailabilityDtoList(List<Availability> list);
 
     // Schedule and Session Mappings
-    ScheduleDTO toScheduleDto(Schedule latest);
+    default ScheduleDTO toScheduleDto(Schedule schedule) {
+        if (schedule == null) {
+            return null;
+        }
+
+        List<SessionDTO> studyPlan = new ArrayList<>();
+        List<SessionDTO> unscheduledPlan = new ArrayList<>();
+
+        if (schedule.getSessions() != null) {
+            for (Session session : schedule.getSessions()) {
+                SessionDTO sessionDTO = toSessionDto(session); // Use the helper
+                if (session.getIsScheduled() != null && session.getIsScheduled()) {
+                    studyPlan.add(sessionDTO);
+                } else {
+                    unscheduledPlan.add(sessionDTO);
+                }
+            }
+        }
+
+        return ScheduleDTO.builder()
+                .id(String.valueOf(schedule.getId()))
+                .generatedAt(schedule.getGeneratedAt().toString())
+                .examType(schedule.getExamType())
+                .termId(schedule.getTerm() != null ? schedule.getTerm().getTermId() : null)
+                .studyPlan(studyPlan)
+                .unscheduledPlan(unscheduledPlan)
+                .build();
+    }
 
     Session toSession(SessionDTO sDto);
 
+    @Mapping(target = "isScheduled", source = "isScheduled") // Ensure boolean is mapped
+    @Mapping(source = "course.courseId", target = "courseId")
+    @Mapping(source = "topic.id", target = "topicId")
+    @Mapping(source = "assignment.id", target = "assignmentId")
+    SessionDTO toSessionDto(Session session);
 
     Term toTerm(TermResponseDTO term, User user);
 

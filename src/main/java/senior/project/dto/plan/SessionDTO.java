@@ -21,6 +21,8 @@ public class SessionDTO {
     private Long duration;
     private SessionType type;
     private Boolean isScheduled;
+    private Integer sessionNumber;
+    private Integer totalSessionsInGroup;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;

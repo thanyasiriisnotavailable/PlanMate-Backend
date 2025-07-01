@@ -22,8 +22,6 @@ import senior.project.util.SecurityUtil;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +38,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
 
     @Override
-    public ScheduleViewDTO getSchedule() {
+    public ScheduleDTO getSchedule() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
         List<Schedule> schedules = scheduleDao.findByUser(user);
@@ -54,12 +52,12 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule latestSchedule = schedules.get(schedules.size() - 1);
 
         // Use the mapper to convert the Schedule entity to ScheduleViewDTO
-        return mapper.toScheduleViewDto(latestSchedule);
+        return mapper.toScheduleDto(latestSchedule);
     }
 
     @Override
     @Transactional
-    public void saveSchedule(ScheduleDTO dto) {
+    public ScheduleDTO saveSchedule(ScheduleDTO dto) {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
         Term term = termDao.findById(dto.getTermId()).orElse(null);
@@ -76,6 +74,8 @@ public class ScheduleServiceImpl implements ScheduleService {
             session.setIsCompleted(false);
             session.setSchedule(schedule);
             session.setIsScheduled(sDto.getIsScheduled());
+            session.setSessionNumber(sDto.getSessionNumber());
+            session.setTotalSessionsInGroup(sDto.getTotalSessionsInGroup());
 
             // Set course and topic references if needed
             if (sDto.getCourseId() != null) {
@@ -94,21 +94,25 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setSessions(sessions);
         scheduleDao.save(schedule); // Cascade saves sessions
         System.out.println(dto);
+        return dto;
     }
 
 
     @Override
     @Transactional
-    public void updateSchedule(ScheduleDTO dto) {
+    public ScheduleDTO updateSchedule(ScheduleDTO dto) {
         String userUid = SecurityUtil.getAuthenticatedUid();
+        User user = userDao.findByUid(userUid);
 
-        // 1. Find existing schedule for user + term
-        Schedule schedule = (Schedule) scheduleDao.findById(dto.getId()).orElse(null);
+        Schedule schedule = scheduleDao.findById(dto.getId()).orElse(null);
+        if (schedule == null || !schedule.getUser().equals(user)) {
+            throw new IllegalArgumentException("Schedule not found or access denied");
+        }
 
-        // 2. Clear old sessions (orphan removal should be enabled or delete manually)
-        schedule.getSessions().clear();
+        // Optional: update term if changed
+        Term term = termDao.findById(dto.getTermId()).orElse(null);
+        schedule.setTerm(term);
 
-        // 3. Set new data
         schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
         schedule.setExamType(dto.getExamType());
 
@@ -118,6 +122,8 @@ public class ScheduleServiceImpl implements ScheduleService {
             session.setIsCompleted(false);
             session.setSchedule(schedule);
             session.setIsScheduled(sDto.getIsScheduled());
+            session.setSessionNumber(sDto.getSessionNumber());
+            session.setTotalSessionsInGroup(sDto.getTotalSessionsInGroup());
 
             if (sDto.getCourseId() != null) {
                 session.setCourse(courseDao.findById(sDto.getCourseId()));
@@ -134,6 +140,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         schedule.setSessions(newSessions);
         scheduleDao.save(schedule); // cascade saves sessions
+
+        return mapper.toScheduleDto(schedule); // map and return updated version
     }
 
     @Override

@@ -9,6 +9,8 @@ import senior.project.dto.plan.StudySetupDTO;
 import senior.project.service.ScheduleService;
 import senior.project.service.StudySetupService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/schedule")
 @RequiredArgsConstructor
@@ -18,23 +20,27 @@ public class ScheduleController {
     private final StudySetupService studySetupService;
 
     @GetMapping
-    public ResponseEntity<ScheduleViewDTO> getSchedule() {
-        ScheduleViewDTO dto = scheduleService.getSchedule();
-        if (dto == null) return ResponseEntity.notFound().build();
+    public ResponseEntity<ScheduleDTO> getSchedule() {
+        ScheduleDTO dto = scheduleService.getSchedule();
+
+        if (dto == null) {
+            return ResponseEntity.notFound().build();
+        }
+
         return ResponseEntity.ok(dto);
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveSchedule(@RequestBody ScheduleDTO dto) {
-        scheduleService.saveSchedule(dto);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ScheduleDTO> saveSchedule(@RequestBody ScheduleDTO dto) {
+        ScheduleDTO savedSchedule = scheduleService.saveSchedule(dto);
+        return ResponseEntity.ok(savedSchedule);
     }
 
     @PutMapping("/schedule/{id}")
-    public ResponseEntity<Void> updateSchedule(@PathVariable String id, @RequestBody ScheduleDTO dto) {
+    public ResponseEntity<ScheduleDTO> updateSchedule(@PathVariable String id, @RequestBody ScheduleDTO dto) {
         dto.setId(id); // Set the path param into the DTO
-        scheduleService.updateSchedule(dto);
-        return ResponseEntity.ok().build();
+        ScheduleDTO updatedSchedule = scheduleService.updateSchedule(dto);
+        return ResponseEntity.ok(updatedSchedule);
     }
 
     @PostMapping("/generate")
@@ -51,8 +57,6 @@ public class ScheduleController {
             return ResponseEntity.status(502).build(); // Bad Gateway if FastAPI fails
         }
 
-        // Save schedule to database
-        scheduleService.saveSchedule(generated);
         return ResponseEntity.ok(generated);
     }
 }

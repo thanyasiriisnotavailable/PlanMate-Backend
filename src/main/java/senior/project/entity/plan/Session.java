@@ -1,5 +1,6 @@
 package senior.project.entity.plan;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,11 +31,14 @@ public class Session {
     private Long duration;
     private Boolean isCompleted;
     private Boolean isScheduled;
+    private Integer sessionNumber;
+    private Integer totalSessionsInGroup;
 
     @Enumerated(EnumType.STRING)
     private SessionType type; // "study", "review", "assignment"
 
     @ManyToOne
+    @JsonBackReference
     private Schedule schedule;
 
     @ManyToOne

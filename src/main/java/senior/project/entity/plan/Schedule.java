@@ -1,5 +1,6 @@
 package senior.project.entity.plan;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,5 +36,6 @@ public class Schedule {
     private Term term;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Session> sessions;
 }
