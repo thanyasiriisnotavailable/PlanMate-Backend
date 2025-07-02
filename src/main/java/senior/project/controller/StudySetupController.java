@@ -122,10 +122,10 @@ public class StudySetupController {
         return ResponseEntity.ok(availabilities);
     }
 
-    // POST: Save availability list
-    @PostMapping("/availabilities")
+    // PUT: Save availability list
+    @PutMapping("/availabilities")
     public ResponseEntity<List<AvailabilityDTO>> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
-        List<AvailabilityDTO> availabilities = studySetupService.saveAvailabilities(availabilityDTOs);
+        List<AvailabilityDTO> availabilities = studySetupService.updateAvailabilities(availabilityDTOs);
         return ResponseEntity.ok(availabilities);
     }
 }

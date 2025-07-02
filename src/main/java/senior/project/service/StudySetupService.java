@@ -18,7 +18,7 @@ public interface StudySetupService {
     @Transactional
     CourseResponseDTO getCourseDetails(Long courseId);
 
-    List<AvailabilityDTO> saveAvailabilities(List<AvailabilityDTO> availabilityDTOs);
+    List<AvailabilityDTO> updateAvailabilities(List<AvailabilityDTO> availabilityDTOs);
 
     @Transactional
     List<AvailabilityDTO> getAvailabilities();

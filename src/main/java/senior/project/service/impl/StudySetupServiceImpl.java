@@ -490,7 +490,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public List<AvailabilityDTO> saveAvailabilities(List<AvailabilityDTO> availabilityDTOs) {
+    public List<AvailabilityDTO> updateAvailabilities(List<AvailabilityDTO> availabilityDTOs) {
         User user = fetchUser();
 
         // Clear existing availabilities for the user to support "overwrite" behavior
