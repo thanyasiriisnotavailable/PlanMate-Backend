@@ -148,7 +148,8 @@ public interface DTOMapper {
 
     Session toSession(SessionDTO sDto);
 
-    @Mapping(target = "isScheduled", source = "isScheduled") // Ensure boolean is mapped
+    @Mapping(source = "sessionId", target = "sessionId")
+    @Mapping(target = "isScheduled", source = "isScheduled")
     @Mapping(source = "course.courseId", target = "courseId")
     @Mapping(source = "topic.id", target = "topicId")
     @Mapping(source = "assignment.id", target = "assignmentId")
@@ -161,6 +162,14 @@ public interface DTOMapper {
     @Mapping(target = "assignments", ignore = true)
     @Mapping(target = "exams", ignore = true)
     Course responsetoCourse(CourseResponseDTO courseDTO);
+
+    @Mapping(target = "sessionId", ignore = true)
+    @Mapping(target = "course", ignore = true)
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "assignment", ignore = true)
+    @Mapping(target = "schedule", ignore = true)
+    void updateSessionFromDto(SessionDTO dto, @MappingTarget Session entity);
+
 
     @Mapping(target = "course", ignore = true)
     @Mapping(target = "associatedTopics", ignore = true)

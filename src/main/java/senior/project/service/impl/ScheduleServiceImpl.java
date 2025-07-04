@@ -22,6 +22,8 @@ import senior.project.util.SecurityUtil;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -127,35 +129,51 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new SecurityException("Access denied to update this schedule.");
         }
 
-        // Update schedule metadata
+        // Update schedule metadata (this part is fine)
         Term term = termDao.findById(dto.getTermId()).orElse(null);
         schedule.setTerm(term);
         schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
         schedule.setExamType(dto.getExamType());
 
-        // Clear the old list of sessions to replace it with the new one
-        schedule.getSessions().clear();
+        // --- OPTIMIZED SESSION MERGE LOGIC ---
 
-        List<Session> allSessions = new ArrayList<>();
-
-        // Process the scheduled sessions from the study plan
+        // 1. Create a combined list of all incoming sessions from the DTO
+        List<SessionDTO> incomingSessionDTOs = new ArrayList<>();
         if (dto.getStudyPlan() != null) {
-            for (SessionDTO sDto : dto.getStudyPlan()) {
-                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
-            }
+            incomingSessionDTOs.addAll(dto.getStudyPlan());
         }
-
-        // Process the unscheduled sessions
         if (dto.getUnscheduledPlan() != null) {
-            for (SessionDTO sDto : dto.getUnscheduledPlan()) {
-                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
-            }
+            incomingSessionDTOs.addAll(dto.getUnscheduledPlan());
         }
 
-        schedule.getSessions().addAll(allSessions);
+        // 2. Create a map of existing sessions for quick lookups
+        Map<String, Session> existingSessionsMap = schedule.getSessions().stream()
+                .collect(Collectors.toMap(Session::getSessionId, session -> session));
+
+        List<Session> updatedSessions = new ArrayList<>();
+
+        // 3. Iterate through incoming sessions to update or create them
+        for (SessionDTO sDto : incomingSessionDTOs) {
+            Session session = existingSessionsMap.get(sDto.getSessionId());
+
+            if (session != null) {
+                // It's an existing session, so update its fields
+                mapper.updateSessionFromDto(sDto, session); // Assumes you have or create a mapper method for this
+                existingSessionsMap.remove(sDto.getSessionId()); // Remove from map to track processed sessions
+            } else {
+                // It's a new session, so create a new entity
+                session = mapSessionDtoToEntity(sDto, schedule);
+            }
+            updatedSessions.add(session);
+        }
+
+        // 4. Any sessions remaining in existingSessionsMap were not in the incoming DTO, so they should be deleted.
+        // With JPA and orphanRemoval=true on the @OneToMany relationship, clearing and setting does the trick.
+        schedule.getSessions().clear();
+        schedule.getSessions().addAll(updatedSessions);
+
         scheduleDao.save(schedule);
 
-        // Return a correctly formatted DTO by calling the updated getSchedule logic
         return getSchedule();
     }
 

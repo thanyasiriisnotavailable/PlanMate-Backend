@@ -36,7 +36,7 @@ public class ScheduleController {
         return ResponseEntity.ok(savedSchedule);
     }
 
-    @PutMapping("/schedule")
+    @PutMapping
     public ResponseEntity<ScheduleDTO> updateSchedule(@RequestBody ScheduleDTO dto) {
         ScheduleDTO updatedSchedule = scheduleService.updateSchedule(dto);
         return ResponseEntity.ok(updatedSchedule);

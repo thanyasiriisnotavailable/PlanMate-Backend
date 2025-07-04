@@ -27,11 +27,8 @@ public class SessionDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
-    @JsonFormat(pattern = "HH:mm:ss")
-    private LocalTime start;
-
-    @JsonFormat(pattern = "HH:mm:ss")
-    private LocalTime end;
+    private String start;
+    private String end;
 
     private String topicId;
     private String assignmentId;

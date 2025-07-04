@@ -35,7 +35,7 @@ public class Schedule {
     @ManyToOne
     private Term term;
 
-    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Session> sessions;
 }
