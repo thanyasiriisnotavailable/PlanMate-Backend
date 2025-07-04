@@ -31,18 +31,18 @@ public class StudySetupController {
         return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
 
-    // GET: Get term by ID
-    @GetMapping("/terms/{termId}")
-    public ResponseEntity<TermResponseDTO> getTermById(@PathVariable Long termId) {
-        try {
-            TermResponseDTO term = studySetupService.getTermById(termId);
-            return ResponseEntity.ok(term);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 Forbidden
-        }
-    }
+//    // GET: Get term by ID
+//    @GetMapping("/terms/{termId}")
+//    public ResponseEntity<TermResponseDTO> getTermById(@PathVariable Long termId) {
+//        try {
+//            TermResponseDTO term = studySetupService.getTermById(termId);
+//            return ResponseEntity.ok(term);
+//        } catch (NoSuchElementException e) {
+//            return ResponseEntity.notFound().build();
+//        } catch (SecurityException e) {
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 Forbidden
+//        }
+//    }
 
     // GET: Get current term based on current date
     @GetMapping("/terms/current")
@@ -124,8 +124,8 @@ public class StudySetupController {
 
     // PUT: Save availability list
     @PutMapping("/availabilities")
-    public ResponseEntity<List<AvailabilityDTO>> saveAvailabilities(@RequestBody List<AvailabilityDTO> availabilityDTOs) {
-        List<AvailabilityDTO> availabilities = studySetupService.updateAvailabilities(availabilityDTOs);
+    public ResponseEntity<List<AvailabilityDTO>> saveAvailabilities(@RequestBody List<AvailabilityRequestDTO> availabilityList) {
+        List<AvailabilityDTO> availabilities = studySetupService.updateAvailabilities(availabilityList);
         return ResponseEntity.ok(availabilities);
     }
 }

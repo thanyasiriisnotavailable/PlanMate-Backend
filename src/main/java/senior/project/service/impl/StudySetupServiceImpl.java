@@ -490,7 +490,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public List<AvailabilityDTO> updateAvailabilities(List<AvailabilityDTO> availabilityDTOs) {
+    public List<AvailabilityDTO> updateAvailabilities(List<AvailabilityRequestDTO> availabilityDTOs) {
         User user = fetchUser();
 
         // Clear existing availabilities for the user to support "overwrite" behavior
@@ -498,7 +498,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         List<AvailabilityDTO> savedDTOs = new ArrayList<>();
 
-        for (AvailabilityDTO dto : availabilityDTOs) {
+        for (AvailabilityRequestDTO dto : availabilityDTOs) {
             Availability availability = Availability.builder()
                     .user(user)
                     .date(dto.getDate())
@@ -528,6 +528,7 @@ public class StudySetupServiceImpl implements StudySetupService {
         List<Availability> availabilities = availabilityDao.findByUser(user);
         return availabilities.stream()
                 .map(a -> AvailabilityDTO.builder()
+                        .id(a.getId())
                         .date(a.getDate())
                         .startTime(a.getStartTime())
                         .endTime(a.getEndTime())

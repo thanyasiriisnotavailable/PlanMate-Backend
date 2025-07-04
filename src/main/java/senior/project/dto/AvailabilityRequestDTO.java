@@ -1,20 +1,17 @@
 package senior.project.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AvailabilityDTO {
-    private Long id;
+public class AvailabilityRequestDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;
 
