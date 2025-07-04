@@ -45,14 +45,35 @@ public class ScheduleServiceImpl implements ScheduleService {
         System.out.println("Schedule count: " + schedules.size());
 
         if (schedules.isEmpty()) {
-            return null;
+            return null; // No schedule found
         }
 
         // Get the most recent schedule
         Schedule latestSchedule = schedules.get(schedules.size() - 1);
 
-        // Use the mapper to convert the Schedule entity to ScheduleViewDTO
-        return mapper.toScheduleDto(latestSchedule);
+        // Manually build the DTO to separate scheduled and unscheduled plans
+        ScheduleDTO scheduleDTO = new ScheduleDTO();
+        scheduleDTO.setId(latestSchedule.getId());
+        scheduleDTO.setGeneratedAt(latestSchedule.getGeneratedAt().toString());
+        scheduleDTO.setExamType(latestSchedule.getExamType());
+        scheduleDTO.setTermId(latestSchedule.getTerm().getTermId());
+
+        List<SessionDTO> studyPlan = new ArrayList<>();
+        List<SessionDTO> unscheduledPlan = new ArrayList<>();
+
+        for (Session session : latestSchedule.getSessions()) {
+            SessionDTO sessionDTO = mapper.toSessionDto(session); // Use your existing mapper for individual sessions
+            if (session.getIsScheduled()) {
+                studyPlan.add(sessionDTO);
+            } else {
+                unscheduledPlan.add(sessionDTO);
+            }
+        }
+
+        scheduleDTO.setStudyPlan(studyPlan);
+        scheduleDTO.setUnscheduledPlan(unscheduledPlan);
+
+        return scheduleDTO;
     }
 
     @Override
@@ -68,35 +89,30 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
         schedule.setTerm(term);
 
-        List<Session> sessions = new ArrayList<>();
-        for (SessionDTO sDto : dto.getStudyPlan()) {
-            Session session = mapper.toSession(sDto);
-            session.setIsCompleted(false);
-            session.setSchedule(schedule);
-            session.setIsScheduled(sDto.getIsScheduled());
-            session.setSessionNumber(sDto.getSessionNumber());
-            session.setTotalSessionsInGroup(sDto.getTotalSessionsInGroup());
+        List<Session> allSessions = new ArrayList<>();
 
-            // Set course and topic references if needed
-            if (sDto.getCourseId() != null) {
-                session.setCourse(courseDao.findById(sDto.getCourseId()));
+        // Process the scheduled sessions from the study plan
+        if (dto.getStudyPlan() != null) {
+            for (SessionDTO sDto : dto.getStudyPlan()) {
+                // isScheduled is inherently true for this list
+                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
             }
-            if (sDto.getTopicId() != null) {
-                session.setTopic(topicDao.findById(sDto.getTopicId()));
-            }
-            if (sDto.getAssignmentId() != null) {
-                session.setAssignment(assignmentDao.findById(sDto.getAssignmentId()));
-            }
-
-            sessions.add(session);
         }
 
-        schedule.setSessions(sessions);
-        scheduleDao.save(schedule); // Cascade saves sessions
-        System.out.println(dto);
-        return dto;
-    }
+        // Process the unscheduled sessions
+        if (dto.getUnscheduledPlan() != null) {
+            for (SessionDTO sDto : dto.getUnscheduledPlan()) {
+                // isScheduled is inherently false for this list
+                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
+            }
+        }
 
+        schedule.setSessions(allSessions);
+        Schedule savedSchedule = scheduleDao.save(schedule); // Cascade saves sessions
+
+        // Return a correctly formatted DTO by calling the updated getSchedule logic
+        return getSchedule();
+    }
 
     @Override
     @Transactional
@@ -104,44 +120,43 @@ public class ScheduleServiceImpl implements ScheduleService {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
 
-        Schedule schedule = scheduleDao.findById(dto.getId()).orElse(null);
-        if (schedule == null || !schedule.getUser().equals(user)) {
-            throw new IllegalArgumentException("Schedule not found or access denied");
+        Schedule schedule = scheduleDao.findById(dto.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found with id: " + dto.getId()));
+
+        if (!schedule.getUser().equals(user)) {
+            throw new SecurityException("Access denied to update this schedule.");
         }
 
-        // Optional: update term if changed
+        // Update schedule metadata
         Term term = termDao.findById(dto.getTermId()).orElse(null);
         schedule.setTerm(term);
-
         schedule.setGeneratedAt(LocalDateTime.parse(dto.getGeneratedAt()));
         schedule.setExamType(dto.getExamType());
 
-        List<Session> newSessions = new ArrayList<>();
-        for (SessionDTO sDto : dto.getStudyPlan()) {
-            Session session = mapper.toSession(sDto);
-            session.setIsCompleted(false);
-            session.setSchedule(schedule);
-            session.setIsScheduled(sDto.getIsScheduled());
-            session.setSessionNumber(sDto.getSessionNumber());
-            session.setTotalSessionsInGroup(sDto.getTotalSessionsInGroup());
+        // Clear the old list of sessions to replace it with the new one
+        schedule.getSessions().clear();
 
-            if (sDto.getCourseId() != null) {
-                session.setCourse(courseDao.findById(sDto.getCourseId()));
-            }
-            if (sDto.getTopicId() != null) {
-                session.setTopic(topicDao.findById(sDto.getTopicId()));
-            }
-            if (sDto.getAssignmentId() != null) {
-                session.setAssignment(assignmentDao.findById(sDto.getAssignmentId()));
-            }
+        List<Session> allSessions = new ArrayList<>();
 
-            newSessions.add(session);
+        // Process the scheduled sessions from the study plan
+        if (dto.getStudyPlan() != null) {
+            for (SessionDTO sDto : dto.getStudyPlan()) {
+                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
+            }
         }
 
-        schedule.setSessions(newSessions);
-        scheduleDao.save(schedule); // cascade saves sessions
+        // Process the unscheduled sessions
+        if (dto.getUnscheduledPlan() != null) {
+            for (SessionDTO sDto : dto.getUnscheduledPlan()) {
+                allSessions.add(mapSessionDtoToEntity(sDto, schedule));
+            }
+        }
 
-        return mapper.toScheduleDto(schedule); // map and return updated version
+        schedule.getSessions().addAll(allSessions);
+        scheduleDao.save(schedule);
+
+        // Return a correctly formatted DTO by calling the updated getSchedule logic
+        return getSchedule();
     }
 
     @Override
@@ -196,5 +211,27 @@ public class ScheduleServiceImpl implements ScheduleService {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private Session mapSessionDtoToEntity(SessionDTO sDto, Schedule schedule) {
+        Session session = mapper.toSession(sDto); // Assumes this maps basic fields
+        session.setIsCompleted(false); // Default value
+        session.setSchedule(schedule);
+
+        // Set boolean based on DTO property
+        session.setIsScheduled(sDto.getIsScheduled());
+
+        // Set relational entities
+        if (sDto.getCourseId() != null) {
+            session.setCourse(courseDao.findById(sDto.getCourseId()));
+        }
+        if (sDto.getTopicId() != null) {
+            session.setTopic(topicDao.findById(sDto.getTopicId()));
+        }
+        if (sDto.getAssignmentId() != null) {
+            session.setAssignment(assignmentDao.findById(sDto.getAssignmentId()));
+        }
+
+        return session;
     }
 }
