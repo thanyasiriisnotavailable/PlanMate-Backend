@@ -23,4 +23,7 @@ public class ExamDTO {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date; // e.g., "2025-02-25"
+
+    public ExamDTO(String e2, String aFinal, Object o) {
+    }
 }

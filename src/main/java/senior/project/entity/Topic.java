@@ -28,4 +28,7 @@ public class Topic {
 
     @ManyToOne
     private Course course;
+
+    public Topic(String t1, String oldName, Course mockCourse) {
+    }
 }

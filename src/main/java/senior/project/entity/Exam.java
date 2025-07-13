@@ -30,4 +30,7 @@ public class Exam {
 
     @ManyToOne
     private Course course;
+
+    public Exam(String e1, String midterm, Object o, Course mockCourse) {
+    }
 }

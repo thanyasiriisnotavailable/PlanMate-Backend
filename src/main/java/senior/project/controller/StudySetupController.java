@@ -31,19 +31,6 @@ public class StudySetupController {
         return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
 
-//    // GET: Get term by ID
-//    @GetMapping("/terms/{termId}")
-//    public ResponseEntity<TermResponseDTO> getTermById(@PathVariable Long termId) {
-//        try {
-//            TermResponseDTO term = studySetupService.getTermById(termId);
-//            return ResponseEntity.ok(term);
-//        } catch (NoSuchElementException e) {
-//            return ResponseEntity.notFound().build();
-//        } catch (SecurityException e) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403 Forbidden
-//        }
-//    }
-
     // GET: Get current term based on current date
     @GetMapping("/terms/current")
     public ResponseEntity<TermResponseDTO> getCurrentTerm() {
@@ -54,7 +41,8 @@ public class StudySetupController {
     // POST: Save Term (creates a new term)
     @PostMapping("/terms")
     public ResponseEntity<TermResponseDTO> createTerm(@RequestBody TermRequestDTO termDTO) {
-        TermResponseDTO savedTerm = studySetupService.saveTerm(termDTO);
+        // For creation, the termId is null
+        TermResponseDTO savedTerm = studySetupService.saveTerm(termDTO, null);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedTerm); // 201 Created
     }
 
@@ -62,7 +50,8 @@ public class StudySetupController {
     @PutMapping("/terms/{termId}")
     public ResponseEntity<TermResponseDTO> updateTerm(@PathVariable Long termId, @RequestBody TermRequestDTO request) {
         try {
-            TermResponseDTO updatedTerm = studySetupService.updateTerm(request, termId);
+            // For update, we pass the termId from the path
+            TermResponseDTO updatedTerm = studySetupService.saveTerm(request, termId);
             return ResponseEntity.ok(updatedTerm);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -72,7 +61,6 @@ public class StudySetupController {
     }
 
     // PUT: Save or Update a list of courses for a specific term
-    // This replaces the old /courses and /course-details for general course management
     @PutMapping("/terms/{termId}/courses")
     public ResponseEntity<List<CourseResponseDTO>> saveAllCourses(
             @PathVariable Long termId,

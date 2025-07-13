@@ -144,9 +144,10 @@ public class StudySetupServiceImpl implements StudySetupService {
         return mapper.toTermDto(currentTerm);
     }
 
+
     @Override
     @Transactional
-    public TermResponseDTO saveTerm(TermRequestDTO termDTO) {
+    public TermResponseDTO saveTerm(TermRequestDTO termDTO, Long termId) {
         if (termDTO.getName().isEmpty()) {
             throw new ValidationException("The name of term cannot be empty.");
         }
@@ -157,126 +158,137 @@ public class StudySetupServiceImpl implements StudySetupService {
         }
 
         User user = fetchUser();
-        Term term = mapper.toTerm(termDTO, user);
-        // New terms don't have an ID yet, so they are always created.
-        term.setCourses(new ArrayList<>()); // Initialize an empty list of courses
+        String userUid = user.getUid();
+        Term term;
+
+        // If termId is present, it's an update. Otherwise, it's a new term.
+        if (termId != null) {
+            // --- UPDATE LOGIC ---
+            term = termDao.findById(termId)
+                    .orElseThrow(() -> new NoSuchElementException("Term not found with ID: " + termId));
+
+            // Security check: ensure the user owns the term
+            if (!term.getUser().getUid().equals(userUid)) {
+                throw new SecurityException("Unauthorized: Cannot update another user's term.");
+            }
+        } else {
+            // --- CREATE LOGIC ---
+            term = new Term();
+            term.setUser(user);
+            term.setCourses(new ArrayList<>()); // Initialize for a new term
+        }
+
+        // Map properties from DTO to the entity
+        term.setName(termDTO.getName());
+        term.setStartDate(termDTO.getStartDate());
+        term.setEndDate(termDTO.getEndDate());
+
         Term savedTerm = termDao.save(term);
+
+        // If it was an update, re-fetch associated entities to ensure the DTO is complete.
+        // This part is often necessary if the relationships aren't eagerly fetched.
+        if (termId != null) {
+            List<Course> courses = courseDao.findByTerm(savedTerm);
+            courses.forEach(course -> {
+                course.getTopics().clear();
+                course.getTopics().addAll(topicDao.findByCourse(course));
+                course.getAssignments().clear();
+                course.getAssignments().addAll(assignmentDao.findByCourse(course));
+                course.getExams().clear();
+                course.getExams().addAll(examDao.findByCourse(course));
+            });
+            savedTerm.setCourses(courses);
+        }
+
         return mapper.toTermDto(savedTerm);
     }
 
     @Override
     @Transactional
-    public TermResponseDTO updateTerm(TermRequestDTO request, Long id) {
-        String userUid = SecurityUtil.getAuthenticatedUid();
-        User user = fetchUser();
-
-        Term term = termDao.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Term not found with ID: " + id));
-
-        if (!term.getUser().getUid().equals(userUid)) {
-            throw new SecurityException("Unauthorized: Cannot update another user's term.");
-        }
-
-        term.setName(request.getName());
-        term.setStartDate(request.getStartDate());
-        term.setEndDate(request.getEndDate());
-
-        Term saved = termDao.save(term);
-        // Re-fetch courses and sub-entities to return a complete DTO after update
-        List<Course> courses = courseDao.findByTerm(saved);
-        courses.forEach(course -> {
-            course.getTopics().clear();
-            course.getTopics().addAll(topicDao.findByCourse(course));
-
-            course.getAssignments().clear();
-            course.getAssignments().addAll(assignmentDao.findByCourse(course));
-
-            course.getExams().clear();
-            course.getExams().addAll(examDao.findByCourse(course));
-        });
-        saved.setCourses(courses);
-
-        return mapper.toTermDto(saved);
-    }
-
-    @Override
-    @Transactional
     public List<CourseResponseDTO> saveAllCourses(Long termId, List<CourseResponseDTO> courseDTOs) {
+        // Fetch Term and Validate Ownership
         Term term = termDao.findById(termId)
                 .orElseThrow(() -> new NoSuchElementException("Term not found with ID: " + termId));
 
         String userUid = SecurityUtil.getAuthenticatedUid();
         if (!term.getUser().getUid().equals(userUid)) {
-            throw new SecurityException("Unauthorized: Cannot save courses for another user's term.");
+            throw new SecurityException("Unauthorized: Cannot modify courses for another user's term.");
         }
 
-        List<Course> savedCourses = new ArrayList<>();
-        List<Course> existingCoursesInTerm = courseDao.findByTerm(term);
+        // Perform validation on the incoming list *before* any DB operations
+        validateCourseList(courseDTOs);
 
-        // Collect incoming course IDs
+        // Handle deletions, updates, and creations
+        Map<Long, Course> existingCoursesMap = courseDao.findByTerm(term).stream()
+                .collect(Collectors.toMap(Course::getCourseId, c -> c));
+
         Set<Long> incomingCourseIds = courseDTOs.stream()
-                .map(CourseResponseDTO::getCourseId) // <-- uses Long courseId
+                .map(CourseResponseDTO::getCourseId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+        // Delete courses that are in the DB but not in the incoming list
+        Set<Long> idsToDelete = new HashSet<>(existingCoursesMap.keySet());
+        idsToDelete.removeAll(incomingCourseIds);
+        if (!idsToDelete.isEmpty()) {
+            courseDao.deleteAllByIdInBatch(idsToDelete); // More efficient deletion
+        }
+
+        // Iterate through DTOs to perform updates or creates
+        List<Course> coursesToSave = new ArrayList<>();
+        for (CourseResponseDTO dto : courseDTOs) {
+            Course course;
+            if (dto.getCourseId() != null && dto.getCourseId() != 0) {
+                // Update existing course
+                course = existingCoursesMap.get(dto.getCourseId());
+                if (course == null) {
+                    // This case should be rare but handles an invalid ID sent from the client
+                    throw new NoSuchElementException("Cannot update. Course with ID " + dto.getCourseId() + " not found in this term.");
+                }
+            } else {
+                // Create new course
+                course = new Course();
+                course.setTerm(term);
+            }
+
+            // Map properties from DTO to the entity
+            mapper.updateCourseFromDto(dto, course);
+            coursesToSave.add(course);
+        }
+
+        // Save all changes in a single batch operation and return the result
+        List<Course> savedCourses = courseDao.saveAll(coursesToSave);
+        return mapper.toCourseResponseDtoList(savedCourses);
+    }
+
+    /**
+     * Helper method to validate the entire list for duplicates and invalid data.
+     */
+    private void validateCourseList(List<CourseResponseDTO> courseDTOs) {
         Set<String> seenCodes = new HashSet<>();
         Set<String> seenNames = new HashSet<>();
 
-        // Delete courses that exist in DB but not in the incoming list
-        for (Course existingCourse : existingCoursesInTerm) {
-            if (!incomingCourseIds.contains(existingCourse.getCourseId())) {
-                topicDao.deleteByCourse(existingCourse);
-                assignmentDao.deleteByCourse(existingCourse);
-                examDao.deleteByCourse(existingCourse);
-                courseDao.delete(existingCourse);
-            }
-        }
-
         for (CourseResponseDTO courseDTO : courseDTOs) {
-            boolean isNewCourse = courseDTO.getCourseId() == null;
+            if (courseDTO.getCourseCode() == null || courseDTO.getCourseCode().trim().isEmpty()) {
+                throw new ValidationException("Course code cannot be empty.");
+            }
 
-            if (courseDTO.getName() == null || courseDTO.getName().trim().isEmpty() || courseDTO.getCourseCode() == null || courseDTO.getCourseCode().trim().isEmpty()) {
-                throw new ValidationException("Course information cannot be empty.");
+            if (courseDTO.getName() == null || courseDTO.getName().trim().isEmpty()) {
+                throw new ValidationException("Course name cannot be empty.");
             }
 
             if (courseDTO.getCredit() == null || courseDTO.getCredit() <= 0) {
-                throw new ValidationException("Invalid course credit.");
+                throw new ValidationException("Invalid course credit for: " + courseDTO.getName());
             }
 
-            if (!seenCodes.add(courseDTO.getCourseCode())) {
-                throw new ValidationException("Duplicated course code: " + courseDTO.getCourseCode());
+            if (!seenCodes.add(courseDTO.getCourseCode().trim())) {
+                throw new ValidationException("Duplicate course code found in list: " + courseDTO.getCourseCode());
             }
 
-            if (!seenNames.add(courseDTO.getName())) {
-                throw new ValidationException("Duplicated ourse name: " + courseDTO.getName());
+            if (!seenNames.add(courseDTO.getName().trim())) {
+                throw new ValidationException("Duplicate course name found in list: " + courseDTO.getName());
             }
-
-            Course course;
-            if (courseDTO.getCourseId() != null) {
-                course = courseDao.findById(courseDTO.getCourseId());
-                if (course != null) {
-                    mapper.updateCourseFromDto(courseDTO, course);
-                } else {
-                    // ID provided but not found — could be stale or invalid
-                    System.err.println("[WARNING] Course ID not found in DB: " + courseDTO.getCourseId() + " — creating new one.");
-                    course = mapper.toCourse(courseDTO, term);
-                }
-            } else {
-                // No ID = new course
-                course = mapper.toCourse(courseDTO, term);
-            }
-
-            course.setTerm(term); // Ensure relationship
-            Course savedCourse = courseDao.save(course);
-            savedCourses.add(savedCourse);
-
-            // Reload child collections
-            savedCourse.setTopics(topicDao.findByCourse(savedCourse));
-            savedCourse.setAssignments(assignmentDao.findByCourse(savedCourse));
-            savedCourse.setExams(examDao.findByCourse(savedCourse));
         }
-
-        return mapper.toCourseResponseDtoList(savedCourses);
     }
 
     @Override
@@ -296,49 +308,18 @@ public class StudySetupServiceImpl implements StudySetupService {
 
     @Override
     @Transactional
-    public CourseResponseDTO getCourseDetails(Long courseId) {
-        String userUid = SecurityUtil.getAuthenticatedUid();
-
-        Course course = courseDao.findById(courseId);
-
-        // Eagerly load sub-entities if not already done by JPA config (e.g., fetch=EAGER or with @Transactional and then accessing them)
-        // If not eagerly fetched by default, explicitly load them to avoid N+1 issues or lazy initialization exceptions.
-        course.getTopics().clear();
-        course.getTopics().addAll(topicDao.findByCourse(course));
-        course.getAssignments().clear();
-        course.getAssignments().addAll(assignmentDao.findByCourse(course));
-        course.getExams().clear();
-        course.getExams().addAll(examDao.findByCourse(course));
-
-        return mapper.toCourseResponseDto(course);
-    }
-
-    // ===================================================================================
-    // === COURSE DETAILS UPDATE LOGIC (THE PRIMARY FIX) ===
-    // ===================================================================================
-
-    @Override
-    @Transactional
     public CourseResponseDTO updateCourseDetails(CourseResponseDTO details) {
         Course course = courseDao.findById(details.getCourseId());
-
-        System.out.println("[DEBUG] Found course: " + course.getName());
 
         String userUid = SecurityUtil.getAuthenticatedUid();
         if (!course.getTerm().getUser().getUid().equals(userUid)) {
             throw new SecurityException("Unauthorized: Cannot update another user's course.");
         }
 
-        // Delegate to helper methods for smart updates. The order is important.
-        System.out.println("\n[DEBUG] --- Starting to process children entities ---");
         Map<String, Topic> topicMap = saveTopics(details.getTopics(), course);
         saveExams(details.getExams(), course);
         saveAssignments(details.getAssignments(), course, topicMap);
-
-        // Explicitly flush changes to the database.
-        System.out.println("\n[DEBUG] Flushing changes to the database...");
         courseDao.flush();
-        System.out.println("[SUCCESS] Transaction flushed.");
 
         // Reload the course to ensure all collections are fresh before mapping to DTO
         Course updatedCourse = courseDao.findById(details.getCourseId());
@@ -346,7 +327,6 @@ public class StudySetupServiceImpl implements StudySetupService {
         updatedCourse.getAssignments().size();  // Trigger lazy loading
         updatedCourse.getExams().size();        // Trigger lazy loading
 
-        System.out.println("--- [END] updateCourseDetails successful ---\n\n");
         return mapper.toCourseResponseDto(updatedCourse);
     }
 
@@ -355,48 +335,56 @@ public class StudySetupServiceImpl implements StudySetupService {
     // === HELPER METHODS WITH DEBUG LOGGING ===
     // ===================================================================================
 
-    private Map<String, Topic> saveTopics(List<TopicDTO> topicDTOs, Course course) {
-        System.out.println("\n[DEBUG] --- Saving Topics ---");
+    public Map<String, Topic> saveTopics(List<TopicDTO> topicDTOs, Course course) {
         if (topicDTOs == null) {
-            System.out.println("[DEBUG] Topic list is null. Deleting all topics for course: " + course.getName());
             topicDao.deleteByCourse(course);
             return Collections.emptyMap();
         }
 
         Map<String, Topic> existingTopics = topicDao.findByCourse(course).stream()
                 .collect(Collectors.toMap(Topic::getId, topic -> topic));
-        System.out.println("[DEBUG] Found " + existingTopics.size() + " existing topics in the database.");
 
-        Set<String> incomingTopicIds = topicDTOs.stream().map(TopicDTO::getId).collect(Collectors.toSet());
+        Set<String> incomingTopicIds = new HashSet<>();
         Map<String, Topic> processedTopics = new HashMap<>();
 
         for (TopicDTO dto : topicDTOs) {
+            // --- Validation ---
+            if (dto.getId() == null || dto.getId().trim().isEmpty()) {
+                throw new ValidationException("Topic ID must not be null or empty");
+            }
+
+            incomingTopicIds.add(dto.getId());
+
             Topic topic;
             if (existingTopics.containsKey(dto.getId())) {
-                System.out.println("[DEBUG] Updating existing topic: ID=" + dto.getId() + ", Name=" + dto.getName());
                 topic = existingTopics.get(dto.getId());
+
+                // --- Ownership Check ---
+                if (!Objects.equals(topic.getCourse().getTerm().getUser().getUid(), course.getTerm().getUser().getUid())) {
+                    throw new SecurityException("Cannot modify topic not owned by the current user.");
+                }
+
                 mapper.updateTopicFromDto(dto, topic);
             } else {
-                System.out.println("[DEBUG] Creating new topic: ID=" + dto.getId() + ", Name=" + dto.getName());
                 topic = mapper.toTopic(dto);
                 topic.setCourse(course);
             }
+
             Topic savedTopic = topicDao.save(topic);
             processedTopics.put(savedTopic.getId(), savedTopic);
         }
 
-        // Delete topics that are no longer in the incoming DTO list
+        // --- Delete obsolete topics ---
         for (Topic existingTopic : existingTopics.values()) {
             if (!incomingTopicIds.contains(existingTopic.getId())) {
-                System.out.println("[DEBUG] Deleting obsolete topic: ID=" + existingTopic.getId() + ", Name=" + existingTopic.getName());
                 topicDao.deleteById(existingTopic.getId());
             }
         }
-        System.out.println("[SUCCESS] Topic saving process complete. " + processedTopics.size() + " topics processed.");
+
         return processedTopics;
     }
 
-    private void saveExams(List<ExamDTO> examDTOs, Course course) {
+    public void saveExams(List<ExamDTO> examDTOs, Course course) {
         System.out.println("\n[DEBUG] --- Saving Exams ---");
         if (examDTOs == null) {
             System.out.println("[DEBUG] Exam list is null. Deleting all exams for course: " + course.getName());
@@ -433,7 +421,7 @@ public class StudySetupServiceImpl implements StudySetupService {
         System.out.println("[SUCCESS] Exam saving process complete.");
     }
 
-    private void saveAssignments(List<AssignmentDTO> assignmentDTOs, Course course, Map<String, Topic> topicMap) {
+    public void saveAssignments(List<AssignmentDTO> assignmentDTOs, Course course, Map<String, Topic> topicMap) {
         System.out.println("\n[DEBUG] --- Saving Assignments ---");
         if (assignmentDTOs == null) {
             System.out.println("[DEBUG] Assignment list is null. Deleting all assignments for course: " + course.getName());

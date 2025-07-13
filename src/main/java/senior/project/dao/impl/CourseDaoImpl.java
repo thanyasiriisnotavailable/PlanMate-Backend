@@ -8,6 +8,7 @@ import senior.project.entity.Term;
 import senior.project.repository.CourseRepository;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,8 +23,9 @@ public class CourseDaoImpl implements CourseDao {
     }
 
     @Override
-    public void saveAll(List<Course> courses) {
+    public List<Course> saveAll(List<Course> courses) {
         courseRepository.saveAll(courses);
+        return courses;
     }
 
     @Override
@@ -44,5 +46,10 @@ public class CourseDaoImpl implements CourseDao {
     @Override
     public void flush() {
         courseRepository.flush();
+    }
+
+    @Override
+    public void deleteAllByIdInBatch(Set<Long> idsToDelete) {
+        courseRepository.deleteAllByIdInBatch(idsToDelete);
     }
 }
