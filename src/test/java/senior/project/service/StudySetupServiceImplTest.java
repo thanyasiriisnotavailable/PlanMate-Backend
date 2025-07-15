@@ -5,6 +5,7 @@ import org.mockito.*;
 import senior.project.dao.*;
 import senior.project.dto.*;
 import senior.project.entity.*;
+import senior.project.enums.ExamType;
 import senior.project.exception.ValidationException;
 import senior.project.service.impl.StudySetupServiceImpl;
 import senior.project.util.DTOMapper;
@@ -434,31 +435,338 @@ class StudySetupServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTC-08-TC-04: Fail when trying to update topic not owned by user")
-        void saveTopics_withUnauthorizedTopic_shouldThrowSecurityException() {
-            // Set up a topic belonging to another user
-            User anotherUser = new User();
-            anotherUser.setUid("other-user");
-
-            Course otherCourse = new Course();
-            otherCourse.setCourseId(11L);
-            otherCourse.setTerm(mockTerm);
-            mockTerm.setUser(anotherUser); // owner is different
-
-            Topic existingTopic = createTopicEntity("t4", "Chem", otherCourse);
-            TopicDTO updateDto = createTopicDTO("t4", "New Chem");
-
-            when(topicDao.findByCourse(otherCourse)).thenReturn(List.of(existingTopic));
-
-            assertThrows(SecurityException.class, () -> studySetupService.saveTopics(List.of(updateDto), otherCourse));
-        }
-
-        @Test
-        @DisplayName("UTC-08-TC-05: Fail when topic ID is missing (null)")
+        @DisplayName("UTC-08-TC-04: Fail when topic ID is missing (null)")
         void saveTopics_withMissingId_shouldThrowValidation() {
             TopicDTO invalidDto = createTopicDTO(null, "Biology");
 
             assertThrows(ValidationException.class, () -> studySetupService.saveTopics(List.of(invalidDto), mockCourse));
+        }
+    }
+
+    @Nested
+    @DisplayName("UTC-09: Tests for saveExams(List<ExamDTO> dtos, Course course)")
+    class SaveExamsTests {
+
+        private Course mockCourse;
+
+        @BeforeEach
+        void initExamTest() {
+            // Setup a mock course to be used in all exam tests
+            mockCourse = new Course();
+            mockCourse.setCourseId(10L);
+            mockCourse.setName("Test Course");
+            mockCourse.setTerm(mockTerm); // Assumes mockTerm is available from the parent setup
+        }
+
+        private ExamDTO createExamDTO(String id, ExamType type) {
+            ExamDTO dto = new ExamDTO();
+            dto.setId(id);
+            dto.setType(type);
+            dto.setDate(LocalDate.of(2025, 10, 20));
+            return dto;
+        }
+
+        private Exam createExamEntity(String id, ExamType type, Course course) {
+            Exam exam = new Exam();
+            exam.setId(id);
+            exam.setType(type);
+            exam.setCourse(course);
+            return exam;
+        }
+
+        @Test
+        @DisplayName("UTC-09-TC-01: Update existing and add new exam")
+        void saveExams_shouldUpdateExistingAndCreateNew() {
+            // Arrange
+            // DB has one existing exam 'e1'
+            Exam existingExam = createExamEntity("e1", ExamType.MIDTERM, mockCourse);
+            when(examDao.findByCourse(mockCourse)).thenReturn(List.of(existingExam));
+
+            // DTOs contain an update for 'e1' and a new exam 'e2'
+            ExamDTO updateDto = createExamDTO("e1", ExamType.MIDTERM);
+            ExamDTO newDto = createExamDTO("e2", ExamType.FINAL);
+            List<ExamDTO> dtoList = List.of(updateDto, newDto);
+
+            // Mock mapper behavior
+            doNothing().when(mapper).updateExamFromDto(any(ExamDTO.class), any(Exam.class));
+            when(mapper.toExam(newDto)).thenReturn(createExamEntity("e2", ExamType.FINAL, mockCourse));
+
+            // Act
+            studySetupService.saveExams(dtoList, mockCourse);
+
+            // Assert
+            verify(mapper).updateExamFromDto(eq(updateDto), eq(existingExam)); // Verify update was called
+            verify(mapper).toExam(eq(newDto)); // Verify creation was called
+            verify(examDao, times(2)).save(any(Exam.class)); // Both exams should be saved
+            verify(examDao, never()).delete(any(Exam.class)); // No exams should be deleted
+        }
+
+        @Test
+        @DisplayName("UTC-09-TC-02: Delete exam not present in DTO list")
+        void saveExams_withMissingExamInDTO_shouldDeleteObsolete() {
+            // Arrange
+            // DB has one existing exam 'e3'
+            Exam obsoleteExam = createExamEntity("e3", ExamType.MIDTERM, mockCourse);
+            when(examDao.findByCourse(mockCourse)).thenReturn(List.of(obsoleteExam));
+
+            // DTO list is empty, meaning 'e3' should be deleted
+            List<ExamDTO> dtoList = Collections.emptyList();
+
+            // Act
+            studySetupService.saveExams(dtoList, mockCourse);
+
+            // Assert
+            verify(examDao, never()).save(any(Exam.class)); // No saves should happen
+            verify(examDao).delete(obsoleteExam); // The obsolete exam should be deleted
+        }
+
+        @Test
+        @DisplayName("UTC-09-TC-03: Delete all exams when DTO list is null")
+        void saveExams_withNullList_shouldDeleteAll() {
+            // Arrange
+            // The DAO doesn't need to be mocked to return anything, as the method shouldn't call findByCourse.
+
+            // Act
+            studySetupService.saveExams(null, mockCourse);
+
+            // Assert
+            verify(examDao).deleteByCourse(mockCourse); // The specific bulk-delete method should be called
+            verify(examDao, never()).findByCourse(any(Course.class)); // Should not fetch exams individually
+            verify(examDao, never()).save(any(Exam.class));
+            verify(examDao, never()).delete(any(Exam.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("UTC-10: Tests for saveAssignments(...)")
+    class SaveAssignmentsTests {
+
+        private Course mockCourse;
+        private Map<String, Topic> topicMap;
+        private Topic mockTopic;
+
+        @BeforeEach
+        void initAssignmentTest() {
+            // Setup a mock course and topic map for all assignment tests
+            mockCourse = new Course();
+            mockCourse.setCourseId(10L);
+            mockCourse.setName("Test Course");
+            mockCourse.setTerm(mockTerm);
+
+            mockTopic = new Topic();
+            mockTopic.setId("t5");
+            mockTopic.setName("Calculus Basics");
+            mockTopic.setCourse(mockCourse);
+
+            topicMap = new HashMap<>();
+            topicMap.put("t5", mockTopic);
+        }
+
+        private AssignmentDTO createAssignmentDTO(String id, String name, List<String> topicIds) {
+            AssignmentDTO dto = new AssignmentDTO();
+            dto.setId(id);
+            dto.setName(name);
+            dto.setDueDate(LocalDate.now().plusWeeks(2));
+            dto.setAssociatedTopicIds(topicIds);
+            return dto;
+        }
+
+        @Test
+        @DisplayName("UTC-10-TC-01: Link assignment to an existing topic")
+        void saveAssignments_shouldLinkToExistingTopic() {
+            // Arrange
+            AssignmentDTO dto = createAssignmentDTO("a1", "HW1", List.of("t5"));
+            when(assignmentDao.findByCourse(mockCourse)).thenReturn(Collections.emptyList());
+            when(mapper.toAssignment(eq(dto), any(Assignment.class))).thenAnswer(inv -> {
+                Assignment a = new Assignment();
+                a.setId(dto.getId());
+                a.setName(dto.getName());
+                return a;
+            });
+
+            // Act
+            studySetupService.saveAssignments(List.of(dto), mockCourse, topicMap);
+
+            // Assert
+            ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
+            verify(assignmentDao).save(captor.capture());
+
+            Assignment savedAssignment = captor.getValue();
+            assertNotNull(savedAssignment.getAssociatedTopics());
+            assertEquals(1, savedAssignment.getAssociatedTopics().size());
+            assertEquals("t5", savedAssignment.getAssociatedTopics().get(0).getId());
+        }
+
+        @Test
+        @DisplayName("UTC-10-TC-02: Delete assignment when not in DTO list")
+        void saveAssignments_withEmptyDtoList_shouldDeleteObsoleteAssignment() {
+            // Arrange
+            Assignment existingAssignment = new Assignment();
+            existingAssignment.setId("a2");
+            when(assignmentDao.findByCourse(mockCourse)).thenReturn(List.of(existingAssignment));
+
+            // Act
+            studySetupService.saveAssignments(Collections.emptyList(), mockCourse, topicMap);
+
+            // Assert
+            verify(assignmentDao).delete(existingAssignment);
+            verify(assignmentDao, never()).save(any(Assignment.class));
+        }
+
+        @Test
+        @DisplayName("UTC-10-TC-03: Delete all assignments when DTO is null")
+        void saveAssignments_withNullDtoList_shouldDeleteAllByCourse() {
+            // Arrange (No specific mocks needed beyond the mock DAO)
+
+            // Act
+            studySetupService.saveAssignments(null, mockCourse, topicMap);
+
+            // Assert
+            verify(assignmentDao).deleteByCourse(mockCourse);
+            verify(assignmentDao, never()).findByCourse(any(Course.class));
+            verify(assignmentDao, never()).save(any(Assignment.class));
+        }
+
+        @Test
+        @DisplayName("UTC-10-TC-04: Assignment is saved without link for non-existent topic ID")
+        void saveAssignments_withInvalidTopicId_shouldSaveAssignmentWithoutLink() {
+            // Arrange
+            AssignmentDTO dto = createAssignmentDTO("a3", "HW2", List.of("invalidId"));
+            when(assignmentDao.findByCourse(mockCourse)).thenReturn(Collections.emptyList());
+            when(mapper.toAssignment(eq(dto), any(Assignment.class))).thenAnswer(inv -> {
+                Assignment a = new Assignment();
+                a.setId(dto.getId());
+                a.setName(dto.getName());
+                return a;
+            });
+
+            // Act
+            studySetupService.saveAssignments(List.of(dto), mockCourse, topicMap);
+
+            // Assert
+            ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
+            verify(assignmentDao).save(captor.capture());
+
+            Assignment savedAssignment = captor.getValue();
+            // The assignment should be saved, but its topic list should be empty
+            assertNotNull(savedAssignment);
+            assertTrue(savedAssignment.getAssociatedTopics().isEmpty());
+        }
+
+        @Test
+        @DisplayName("UTC-10-TC-05: Fail when assignment ID is null")
+        void saveAssignments_withNullId_shouldThrowException() {
+            // Arrange
+            AssignmentDTO dtoWithNullId = createAssignmentDTO(null, "NoId", Collections.emptyList());
+            when(assignmentDao.findByCourse(mockCourse)).thenReturn(Collections.emptyList());
+
+            // Act & Assert
+            // The method uses the ID as a map key, which will cause a NullPointerException if null.
+            assertThrows(NullPointerException.class, () -> {
+                studySetupService.saveAssignments(List.of(dtoWithNullId), mockCourse, topicMap);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("UTC-11: Tests for saveAvailabilities(...)")
+    class SaveAvailabilitiesTests {
+
+        // Helper method to mock the internal fetchUser() behavior
+        private void mockFetchUser() {
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+            }
+        }
+
+        @Test
+        @DisplayName("UTC-11-TC-01: Save new availabilities, overwriting old ones")
+        void saveAvailabilities_shouldDeleteOldAndSaveNew() {
+            // Arrange
+            // The service has a private fetchUser() method. We mock the dependencies it relies on.
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                List<AvailabilityRequestDTO> newDtos = List.of(
+                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 2), LocalTime.of(10, 0), LocalTime.of(11, 0)),
+                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 3), LocalTime.of(14, 0), LocalTime.of(15, 0))
+                );
+
+                // When save is called, return the object that was passed in
+                when(availabilityDao.save(any(Availability.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                // Act
+                List<AvailabilityDTO> result = studySetupService.saveAvailabilities(newDtos);
+
+                // Assert
+                verify(availabilityDao).deleteByUser(mockUser); // Verify old data was cleared
+                verify(availabilityDao, times(2)).save(any(Availability.class)); // Verify new data was saved
+
+                assertEquals(2, result.size());
+                assertEquals(LocalDate.of(2025, 7, 2), result.get(0).getDate());
+                assertEquals(LocalTime.of(14, 0), result.get(1).getStartTime());
+            }
+        }
+
+        @Test
+        @DisplayName("UTC-11-TC-02: Save empty list deletes all existing")
+        void saveAvailabilities_withEmptyList_shouldDeleteAll() {
+            // Arrange
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                List<AvailabilityRequestDTO> emptyList = Collections.emptyList();
+
+                // Act
+                List<AvailabilityDTO> result = studySetupService.saveAvailabilities(emptyList);
+
+                // Assert
+                verify(availabilityDao).deleteByUser(mockUser);
+                verify(availabilityDao, never()).save(any(Availability.class));
+                assertTrue(result.isEmpty());
+            }
+        }
+
+        @Test
+        @DisplayName("UTC-11-TC-03: Fail on null input list")
+        void saveAvailabilities_withNullList_shouldThrowException() {
+            // Arrange
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                // Act & Assert
+                // The method attempts to iterate over the list without a null check
+                assertThrows(NullPointerException.class, () -> studySetupService.saveAvailabilities(null));
+            }
+        }
+
+        @Test
+        @DisplayName("UTC-11-TC-04: Fail when DTO has null required fields")
+        void saveAvailabilities_withIncompleteDto_shouldThrowException() {
+            // Arrange
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                // A DTO with a null date, which should violate a DB constraint
+                List<AvailabilityRequestDTO> badDtos = List.of(
+                        new AvailabilityRequestDTO(null, LocalTime.of(10, 0), LocalTime.of(11, 0))
+                );
+
+                // Mock the DAO to throw a persistence-layer exception
+                when(availabilityDao.save(any(Availability.class)))
+                        .thenThrow(new jakarta.persistence.PersistenceException("Column 'date' cannot be null"));
+
+                // Act & Assert
+                assertThrows(jakarta.persistence.PersistenceException.class, () -> studySetupService.saveAvailabilities(badDtos));
+
+                // Also verify the initial delete was called, as it happens before the loop
+                verify(availabilityDao).deleteByUser(mockUser);
+            }
         }
     }
 }

@@ -16,7 +16,7 @@ public interface StudySetupService {
     List<CourseResponseDTO> saveAllCourses(Long termId, List<CourseResponseDTO> courseDTOs);
     void deleteCourse(Long courseId);
 
-    List<AvailabilityDTO> updateAvailabilities(List<AvailabilityRequestDTO> availabilities);
+    List<AvailabilityDTO> saveAvailabilities(List<AvailabilityRequestDTO> availabilities);
 
     @Transactional
     List<AvailabilityDTO> getAvailabilities();
