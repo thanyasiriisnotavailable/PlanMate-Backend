@@ -3,6 +3,7 @@ import jakarta.transaction.Transactional;
 import lombok.*;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import senior.project.dao.*;
 import senior.project.dto.CourseResponseDTO;
@@ -15,6 +16,7 @@ import senior.project.entity.plan.Schedule;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 import senior.project.enums.ExamType;
+import senior.project.exception.ValidationException;
 import senior.project.service.ScheduleService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
@@ -183,6 +185,11 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         // 1. Fetch the user's study preferences
         StudyPreference preference = studyPreferenceDao.findByUserUid(userUid);
+
+        if (preference == null) {
+            throw new ValidationException("Please complete your study preferences first.");
+        }
+
         StudyPreferenceDTO preferences = mapper.toStudyPreferenceDto(preference);
 
         // 2. Create the consolidated request object
@@ -206,7 +213,11 @@ public class ScheduleServiceImpl implements ScheduleService {
             );
             ScheduleDTO result = response.getBody();
 
-            // 🔽 Set additional fields before saving
+            if (result == null) {
+                throw new ValidationException("Error generating plan");
+            }
+
+            // Set additional fields before saving
             assert result != null;
             result.setGeneratedAt(LocalDateTime.now().toString()); // or use formatter
             result.setTermId(setupDTO.getTerm().getTermId());
@@ -225,9 +236,8 @@ public class ScheduleServiceImpl implements ScheduleService {
             result.setExamType(examType);
 
             return result;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+        } catch (RestClientException e) {
+            throw new ValidationException("The schedule generation service is currently unavailable. Please try again later.");
         }
     }
 

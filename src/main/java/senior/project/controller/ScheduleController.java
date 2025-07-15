@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import senior.project.dto.plan.ScheduleDTO;
 import senior.project.dto.plan.ScheduleViewDTO;
 import senior.project.dto.plan.StudySetupDTO;
+import senior.project.exception.ValidationException;
 import senior.project.service.ScheduleService;
 import senior.project.service.StudySetupService;
 
@@ -47,7 +48,7 @@ public class ScheduleController {
         // Load the existing StudySetupDTO from DB
         StudySetupDTO setupDTO = studySetupService.getStudySetup();
         if (setupDTO == null) {
-            return ResponseEntity.badRequest().build();
+            throw new ValidationException("Please complete your study setup first.");
         }
 
         // Call FastAPI microservice to get schedule

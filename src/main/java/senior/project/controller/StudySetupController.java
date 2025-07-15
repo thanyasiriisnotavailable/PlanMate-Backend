@@ -83,19 +83,6 @@ public class StudySetupController {
         }
     }
 
-//    @GetMapping("/terms/courses/{courseId}/details")
-//    public ResponseEntity<CourseResponseDTO> getCourseDetails(
-//            @PathVariable Long courseId) {
-//        try {
-//            CourseResponseDTO details = studySetupService.getCourseDetails(courseId);
-//            return ResponseEntity.ok(details);
-//        } catch (NoSuchElementException e) {
-//            return ResponseEntity.notFound().build();
-//        } catch (SecurityException e) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-//        }
-//    }
-
     @PutMapping("/courses/details")
     public ResponseEntity<CourseResponseDTO> updateCourseDetails(
             @RequestBody CourseResponseDTO details) {

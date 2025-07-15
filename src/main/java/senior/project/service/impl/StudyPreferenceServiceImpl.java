@@ -7,6 +7,7 @@ import senior.project.dao.StudyPreferenceDao;
 import senior.project.dto.StudyPreferenceDTO;
 import senior.project.entity.StudyPreference;
 import senior.project.entity.User;
+import senior.project.exception.ValidationException;
 import senior.project.service.StudyPreferenceService;
 import senior.project.service.UserService;
 import senior.project.util.DTOMapper;
@@ -33,18 +34,19 @@ public class StudyPreferenceServiceImpl implements StudyPreferenceService {
 
     @Override
     public StudyPreferenceDTO saveOrUpdate(StudyPreferenceDTO dto) {
+        if (dto.getRevisionFrequency().isEmpty() || dto.getPreferredStudyTimes().isEmpty()) {
+            throw new ValidationException("Study preference information cannot be empty");
+        }
         if (dto.getMinSessionDuration() <= 0) {
-            throw new IllegalArgumentException("Minimum session duration must be greater than 0");
+            throw new ValidationException("Minimum session duration must be greater than 0");
         }
         if (dto.getMaxSessionDuration() < dto.getMinSessionDuration()) {
-            throw new IllegalArgumentException("Maximum session duration must be greater than or equal to minimum");
-        }
-        if (dto.getRevisionFrequency() == null || dto.getRevisionFrequency().trim().isEmpty()) {
-            throw new IllegalArgumentException("Revision frequency must not be empty");
+            throw new ValidationException("Maximum session duration must be greater than or equal to minimum");
         }
         if (dto.getBreakDurations() < 0) {
-            throw new IllegalArgumentException("Break duration must be non-negative");
+            throw new ValidationException("Break duration must be non-negative");
         }
+
 
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userService.findByUid(userUid);

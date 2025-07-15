@@ -12,6 +12,7 @@ import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,7 @@ public class StudySetupServiceImpl implements StudySetupService {
     private final AssignmentDao assignmentDao;
     private final AvailabilityDao availabilityDao;
     private final DTOMapper mapper;
+    private static final long MAX_AVAILABILITY_DURATION_HOURS = 10;
 
     @Override
     @Transactional
@@ -336,9 +338,18 @@ public class StudySetupServiceImpl implements StudySetupService {
     // ===================================================================================
 
     public Map<String, Topic> saveTopics(List<TopicDTO> topicDTOs, Course course) {
-        if (topicDTOs == null) {
-            topicDao.deleteByCourse(course);
-            return Collections.emptyMap();
+        if (topicDTOs == null || topicDTOs.isEmpty()) {
+            throw new ValidationException("At least one topic is required.");
+        }
+
+        Set<String> topicNames = new HashSet<>();
+        for (TopicDTO dto : topicDTOs) {
+            if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+                throw new ValidationException("Topic name cannot be empty.");
+            }
+            if (!topicNames.add(dto.getName().trim())) {
+                throw new ValidationException("Duplicated topic name: " + dto.getName().trim() + ".");
+            }
         }
 
         Map<String, Topic> existingTopics = topicDao.findByCourse(course).stream()
@@ -351,6 +362,9 @@ public class StudySetupServiceImpl implements StudySetupService {
             // --- Validation ---
             if (dto.getId() == null || dto.getId().trim().isEmpty()) {
                 throw new ValidationException("Topic ID must not be null or empty");
+            }
+            if (dto.getEstimatedStudyTime() < 0) {
+                throw new ValidationException("Invalid topic estimated study time.");
             }
 
             incomingTopicIds.add(dto.getId());
@@ -398,7 +412,17 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         Set<String> incomingExamIds = examDTOs.stream().map(ExamDTO::getId).collect(Collectors.toSet());
 
+        LocalDate termStart = course.getTerm().getStartDate();
+        LocalDate termEnd = course.getTerm().getEndDate();
+
         for (ExamDTO dto : examDTOs) {
+            if (dto.getDate().isBefore(termStart) || dto.getDate().isAfter(termEnd)) {
+                throw new ValidationException("Exam date must be within the term date range.");
+            }
+            if (dto.getEndTime().isBefore(dto.getStartTime())) {
+                throw new ValidationException("Exam end time must be after start time.");
+            }
+
             Exam exam;
             if (existingExams.containsKey(dto.getId())) {
                 System.out.println("[DEBUG] Updating existing exam: ID=" + dto.getId() + ", Type=" + dto.getType());
@@ -435,7 +459,19 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         Set<String> incomingAssignmentIds = assignmentDTOs.stream().map(AssignmentDTO::getId).collect(Collectors.toSet());
 
+        LocalDate termStart = course.getTerm().getStartDate();
+        LocalDate termEnd = course.getTerm().getEndDate();
+
         for (AssignmentDTO dto : assignmentDTOs) {
+            if (dto.getDueDate().isBefore(termStart) || dto.getDueDate().isAfter(termEnd)) {
+                throw new ValidationException("Assignment due date must be within the term date range.");
+            }
+
+            // STC-08-TC-07: Test with invalid estimated time
+            if (dto.getEstimatedTime() < 0) {
+                throw new ValidationException("Invalid assignment estimated time.");
+            }
+
             Assignment assignment;
             if (existingAssignments.containsKey(dto.getId())) {
                 System.out.println("[DEBUG] Updating existing assignment: ID=" + dto.getId() + ", Name=" + dto.getName());
@@ -479,7 +515,62 @@ public class StudySetupServiceImpl implements StudySetupService {
     @Override
     @Transactional
     public List<AvailabilityDTO> saveAvailabilities(List<AvailabilityRequestDTO> availabilityDTOs) {
+        if (availabilityDTOs == null) {
+            throw new ValidationException("Availability list cannot be null.");
+        }
+
         User user = fetchUser();
+
+        // --- Pre-emptive Validation Block ---
+        if (!availabilityDTOs.isEmpty()) {
+            // Fetch term once for date range validation
+            TermResponseDTO term = getCurrentTerm();
+            LocalDate termStart = term.getStartDate();
+            LocalDate termEnd = term.getEndDate();
+            LocalDate today = LocalDate.now();
+
+            Set<AvailabilityRequestDTO> uniqueSlots = new HashSet<>(availabilityDTOs);
+            if (uniqueSlots.size() < availabilityDTOs.size()) {
+                throw new ValidationException("Duplicate availability entry.");
+            }
+
+            for (AvailabilityRequestDTO dto : availabilityDTOs) {
+                if (dto.getDate() == null) throw new ValidationException("Date is required.");
+                if (dto.getStartTime() == null) throw new ValidationException("Start time cannot be empty.");
+                if (dto.getEndTime() == null) throw new ValidationException("End time cannot be empty.");
+                if (dto.getStartTime().isAfter(dto.getEndTime())) {
+                    throw new ValidationException("Start time must be before end time.");
+                }
+                if (dto.getDate().isBefore(today)) {
+                    throw new ValidationException("Cannot add availability for past date.");
+                }
+                if (dto.getDate().isBefore(termStart) || dto.getDate().isAfter(termEnd)) {
+                    throw new ValidationException("Availability must be within the term date range.");
+                }
+
+                long durationHours = java.time.Duration.between(dto.getStartTime(), dto.getEndTime()).toHours();
+                if (durationHours > MAX_AVAILABILITY_DURATION_HOURS) {
+                    throw new ValidationException("Availability duration exceeds maximum allowed time per session.");
+                }
+            }
+
+            List<AvailabilityRequestDTO> sortedSlots = availabilityDTOs.stream()
+                    .sorted(Comparator.comparing(AvailabilityRequestDTO::getDate)
+                            .thenComparing(AvailabilityRequestDTO::getStartTime))
+                    .toList();
+
+            for (int i = 1; i < sortedSlots.size(); i++) {
+                AvailabilityRequestDTO prev = sortedSlots.get(i - 1);
+                AvailabilityRequestDTO current = sortedSlots.get(i);
+                // Check for overlap only if they are on the same day
+                if (prev.getDate().equals(current.getDate())) {
+                    if (current.getStartTime().isBefore(prev.getEndTime())) {
+                        throw new ValidationException("Time slot overlaps with an existing availability on the same day.");
+                    }
+                }
+            }
+        }
+        // --- End of Validation Block ---
 
         // Clear existing availabilities for the user to support "overwrite" behavior
         availabilityDao.deleteByUser(user);
@@ -498,6 +589,7 @@ public class StudySetupServiceImpl implements StudySetupService {
 
             // Map back to DTO (assuming a mapper is available)
             AvailabilityDTO savedDTO = AvailabilityDTO.builder()
+                    .id(saved.getId())
                     .date(saved.getDate())
                     .startTime(saved.getStartTime())
                     .endTime(saved.getEndTime())
@@ -527,7 +619,6 @@ public class StudySetupServiceImpl implements StudySetupService {
     @Override
     @Transactional
     public StudySetupDTO getStudySetup() {
-        String userUid = SecurityUtil.getAuthenticatedUid();
         User user = fetchUser();
         Term term = termDao.findByUser(user);
 
