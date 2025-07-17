@@ -22,8 +22,9 @@ public class AvailabilityDaoImpl implements AvailabilityDao {
     }
 
     @Override
-    public void saveAll(List<Availability> availabilities) {
+    public List<Availability> saveAll(List<Availability> availabilities) {
         availabilityRepository.saveAll(availabilities);
+        return availabilities;
     }
 
     @Override
@@ -34,5 +35,10 @@ public class AvailabilityDaoImpl implements AvailabilityDao {
     @Override
     public void deleteByUser(User user) {
         availabilityRepository.deleteByUser(user);
+    }
+
+    @Override
+    public void deleteAll(List<Availability> toDelete) {
+        availabilityRepository.deleteAll(toDelete);
     }
 }

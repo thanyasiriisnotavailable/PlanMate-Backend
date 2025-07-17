@@ -12,6 +12,7 @@ import senior.project.service.StudySetupService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -523,8 +524,10 @@ public class StudySetupServiceImpl implements StudySetupService {
 
         // --- Pre-emptive Validation Block ---
         if (!availabilityDTOs.isEmpty()) {
-            // Fetch term once for date range validation
             TermResponseDTO term = getCurrentTerm();
+            if (term == null) {
+                throw new ValidationException("Cannot save availabilities because no current term is set.");
+            }
             LocalDate termStart = term.getStartDate();
             LocalDate termEnd = term.getEndDate();
             LocalDate today = LocalDate.now();
@@ -534,21 +537,29 @@ public class StudySetupServiceImpl implements StudySetupService {
                 throw new ValidationException("Duplicate availability entry.");
             }
 
+            Map<String, Availability> existingMap = availabilityDao.findByUser(user).stream()
+                    .collect(Collectors.toMap(
+                            a -> a.getDate() + "_" + a.getStartTime() + "_" + a.getEndTime(),
+                            a -> a
+                    ));
+
             for (AvailabilityRequestDTO dto : availabilityDTOs) {
+                String key = dto.getDate() + "_" + dto.getStartTime() + "_" + dto.getEndTime();
+                Availability existing = existingMap.get(key);
+
                 if (dto.getDate() == null) throw new ValidationException("Date is required.");
                 if (dto.getStartTime() == null) throw new ValidationException("Start time cannot be empty.");
                 if (dto.getEndTime() == null) throw new ValidationException("End time cannot be empty.");
                 if (dto.getStartTime().isAfter(dto.getEndTime())) {
                     throw new ValidationException("Start time must be before end time.");
                 }
-                if (dto.getDate().isBefore(today)) {
-                    throw new ValidationException("Cannot add availability for past date.");
-                }
                 if (dto.getDate().isBefore(termStart) || dto.getDate().isAfter(termEnd)) {
                     throw new ValidationException("Availability must be within the term date range.");
                 }
-
-                long durationHours = java.time.Duration.between(dto.getStartTime(), dto.getEndTime()).toHours();
+                if (existing == null && dto.getDate().isBefore(today)) {
+                    throw new ValidationException("Cannot add availability for past date.");
+                }
+                long durationHours = Duration.between(dto.getStartTime(), dto.getEndTime()).toHours();
                 if (durationHours > MAX_AVAILABILITY_DURATION_HOURS) {
                     throw new ValidationException("Availability duration exceeds maximum allowed time per session.");
                 }
@@ -562,43 +573,60 @@ public class StudySetupServiceImpl implements StudySetupService {
             for (int i = 1; i < sortedSlots.size(); i++) {
                 AvailabilityRequestDTO prev = sortedSlots.get(i - 1);
                 AvailabilityRequestDTO current = sortedSlots.get(i);
-                // Check for overlap only if they are on the same day
-                if (prev.getDate().equals(current.getDate())) {
-                    if (current.getStartTime().isBefore(prev.getEndTime())) {
-                        throw new ValidationException("Time slot overlaps with an existing availability on the same day.");
-                    }
+                if (prev.getDate().equals(current.getDate()) &&
+                        current.getStartTime().isBefore(prev.getEndTime())) {
+                    throw new ValidationException("Time slot overlaps with an existing availability on the same day.");
                 }
             }
         }
         // --- End of Validation Block ---
 
-        // Clear existing availabilities for the user to support "overwrite" behavior
-        availabilityDao.deleteByUser(user);
+        // Fetch current availabilities
+        List<Availability> existingAvailabilities = availabilityDao.findByUser(user);
+        Map<String, Availability> existingMap = existingAvailabilities.stream()
+                .collect(Collectors.toMap(
+                        a -> a.getDate() + "_" + a.getStartTime() + "_" + a.getEndTime(),
+                        a -> a
+                ));
 
-        List<AvailabilityDTO> savedDTOs = new ArrayList<>();
+        Set<String> incomingKeys = new HashSet<>();
+        List<Availability> toSave = new ArrayList<>();
 
         for (AvailabilityRequestDTO dto : availabilityDTOs) {
-            Availability availability = Availability.builder()
-                    .user(user)
-                    .date(dto.getDate())
-                    .startTime(dto.getStartTime())
-                    .endTime(dto.getEndTime())
-                    .build();
+            String key = dto.getDate() + "_" + dto.getStartTime() + "_" + dto.getEndTime();
+            incomingKeys.add(key);
 
-            Availability saved = availabilityDao.save(availability);
-
-            // Map back to DTO (assuming a mapper is available)
-            AvailabilityDTO savedDTO = AvailabilityDTO.builder()
-                    .id(saved.getId())
-                    .date(saved.getDate())
-                    .startTime(saved.getStartTime())
-                    .endTime(saved.getEndTime())
-                    .build();
-
-            savedDTOs.add(savedDTO);
+            Availability existing = existingMap.get(key);
+            if (existing != null) {
+                // Already exists — no need to update unless you want to update extra fields
+                toSave.add(existing);
+            } else {
+                // New availability
+                Availability availability = Availability.builder()
+                        .user(user)
+                        .date(dto.getDate())
+                        .startTime(dto.getStartTime())
+                        .endTime(dto.getEndTime())
+                        .build();
+                toSave.add(availability);
+            }
         }
 
-        return savedDTOs;
+        // Optionally: delete old ones that are no longer in the new list
+        List<Availability> toDelete = existingAvailabilities.stream()
+                .filter(a -> !incomingKeys.contains(a.getDate() + "_" + a.getStartTime() + "_" + a.getEndTime()))
+                .toList();
+
+        availabilityDao.deleteAll(toDelete);
+        List<Availability> savedAvailabilities = availabilityDao.saveAll(toSave);
+
+        // Convert to DTOs
+        return savedAvailabilities.stream().map(saved -> AvailabilityDTO.builder()
+                .id(saved.getId())
+                .date(saved.getDate())
+                .startTime(saved.getStartTime())
+                .endTime(saved.getEndTime())
+                .build()).toList();
     }
 
     @Override

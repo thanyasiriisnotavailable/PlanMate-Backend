@@ -673,99 +673,127 @@ class StudySetupServiceImplTest {
     class SaveAvailabilitiesTests {
 
         // Helper method to mock the internal fetchUser() behavior
-        private void mockFetchUser() {
-            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
-                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
-                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
-            }
+        private void mockAuthenticatedUser(MockedStatic<SecurityUtil> mockedSecurityUtil) {
+            mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+            when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
         }
 
         @Test
         @DisplayName("UTC-11-TC-01: Save new availabilities, overwriting old ones")
-        void saveAvailabilities_shouldDeleteOldAndSaveNew() {
-            // Arrange
-            // The service has a private fetchUser() method. We mock the dependencies it relies on.
+        void saveAvailabilities_withValidData_shouldSucceed() {
             try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
-                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
-                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+                // Arrange
+                // 1. Mock user authentication
+                mockAuthenticatedUser(mockedSecurityUtil);
 
+                // 2. Create the mock Term ENTITY that the DAO will return
+                Term mockCurrentTermEntity = new Term();
+                mockCurrentTermEntity.setUser(mockUser); // Crucial for the ownership check in getCurrentTerm()
+                mockCurrentTermEntity.setStartDate(LocalDate.of(2025, 7, 1));
+                mockCurrentTermEntity.setEndDate(LocalDate.of(2025, 12, 31));
+
+                // 3. Create the mock Term DTO that the Mapper will return
+                TermResponseDTO mockTermResponse = TermResponseDTO.builder()
+                        .startDate(mockCurrentTermEntity.getStartDate())
+                        .endDate(mockCurrentTermEntity.getEndDate())
+                        .build();
+
+                // 4. MOCK THE DEPENDENCIES CALLED BY getCurrentTerm()
+                when(termDao.getCurrentTerm()).thenReturn(Optional.of(mockCurrentTermEntity));
+                when(mapper.toTermDto(mockCurrentTermEntity)).thenReturn(mockTermResponse);
+
+                // Mock existing availabilities (these will be deleted)
+                when(availabilityDao.findByUser(mockUser)).thenReturn(new ArrayList<>());
+
+                // New availability DTOs to be saved
                 List<AvailabilityRequestDTO> newDtos = List.of(
-                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 2), LocalTime.of(10, 0), LocalTime.of(11, 0)),
-                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 3), LocalTime.of(14, 0), LocalTime.of(15, 0))
+                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 20), LocalTime.of(10, 0), LocalTime.of(11, 0)),
+                        new AvailabilityRequestDTO(LocalDate.of(2025, 7, 21), LocalTime.of(14, 0), LocalTime.of(15, 0))
                 );
 
-                // When save is called, return the object that was passed in
-                when(availabilityDao.save(any(Availability.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                // Mock the saveAll call
+                when(availabilityDao.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
                 // Act
                 List<AvailabilityDTO> result = studySetupService.saveAvailabilities(newDtos);
 
                 // Assert
-                verify(availabilityDao).deleteByUser(mockUser); // Verify old data was cleared
-                verify(availabilityDao, times(2)).save(any(Availability.class)); // Verify new data was saved
-
-                assertEquals(2, result.size());
-                assertEquals(LocalDate.of(2025, 7, 2), result.get(0).getDate());
-                assertEquals(LocalTime.of(14, 0), result.get(1).getStartTime());
+                verify(availabilityDao).deleteAll(anyList()); // Verify old ones are cleared
+                verify(availabilityDao).saveAll(anyList());  // Verify new ones are saved
+                assertThat(result).hasSize(2);
+                assertThat(result.get(0).getDate()).isEqualTo("2025-07-20");
             }
         }
 
         @Test
         @DisplayName("UTC-11-TC-02: Save empty list deletes all existing")
         void saveAvailabilities_withEmptyList_shouldDeleteAll() {
-            // Arrange
             try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                // Arrange
                 mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
-
-                List<AvailabilityRequestDTO> emptyList = Collections.emptyList();
+                when(availabilityDao.findByUser(mockUser)).thenReturn(List.of(
+                        Availability.builder().id(1L).user(mockUser).date(LocalDate.of(2025, 7, 1))
+                                .startTime(LocalTime.of(9, 0)).endTime(LocalTime.of(10, 0)).build()
+                ));
 
                 // Act
-                List<AvailabilityDTO> result = studySetupService.saveAvailabilities(emptyList);
+                List<AvailabilityDTO> result = studySetupService.saveAvailabilities(Collections.emptyList());
 
                 // Assert
-                verify(availabilityDao).deleteByUser(mockUser);
-                verify(availabilityDao, never()).save(any(Availability.class));
+                verify(availabilityDao).findByUser(mockUser);
+                verify(availabilityDao).deleteAll(anyList());
+                verify(availabilityDao).saveAll(Collections.emptyList());
                 assertTrue(result.isEmpty());
             }
         }
 
         @Test
         @DisplayName("UTC-11-TC-03: Fail on null input list")
-        void saveAvailabilities_withNullList_shouldThrowException() {
-            // Arrange
+        void saveAvailabilities_withNullList_shouldThrowValidationException() {
             try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                // Arrange
                 mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
 
                 // Act & Assert
-                // The method attempts to iterate over the list without a null check
-                assertThrows(NullPointerException.class, () -> studySetupService.saveAvailabilities(null));
+                ValidationException ex = assertThrows(ValidationException.class,
+                        () -> studySetupService.saveAvailabilities(null));
+                assertEquals("Availability list cannot be null.", ex.getMessage());
             }
         }
 
         @Test
         @DisplayName("UTC-11-TC-04: Fail when DTO has null required fields")
-        void saveAvailabilities_withIncompleteDto_shouldThrowException() {
-            // Arrange
+        void saveAvailabilities_withIncompleteDto_shouldThrowValidationException() {
             try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                // Arrange
                 mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
 
-                // A DTO with a null date, which should violate a DB constraint
+                Term mockCurrentTermEntity = new Term();
+                mockCurrentTermEntity.setUser(mockUser);
+                mockCurrentTermEntity.setStartDate(LocalDate.of(2025, 7, 1));
+                mockCurrentTermEntity.setEndDate(LocalDate.of(2025, 12, 31));
+
+                TermResponseDTO mockTermResponse = TermResponseDTO.builder()
+                        .startDate(mockCurrentTermEntity.getStartDate())
+                        .endDate(mockCurrentTermEntity.getEndDate())
+                        .build();
+
+                when(termDao.getCurrentTerm()).thenReturn(Optional.of(mockCurrentTermEntity));
+                when(mapper.toTermDto(mockCurrentTermEntity)).thenReturn(mockTermResponse);
+
+                // Missing date (null)
                 List<AvailabilityRequestDTO> badDtos = List.of(
                         new AvailabilityRequestDTO(null, LocalTime.of(10, 0), LocalTime.of(11, 0))
                 );
 
-                // Mock the DAO to throw a persistence-layer exception
-                when(availabilityDao.save(any(Availability.class)))
-                        .thenThrow(new jakarta.persistence.PersistenceException("Column 'date' cannot be null"));
-
                 // Act & Assert
-                assertThrows(jakarta.persistence.PersistenceException.class, () -> studySetupService.saveAvailabilities(badDtos));
+                ValidationException ex = assertThrows(ValidationException.class,
+                        () -> studySetupService.saveAvailabilities(badDtos));
 
-                // Also verify the initial delete was called, as it happens before the loop
-                verify(availabilityDao).deleteByUser(mockUser);
+                assertEquals("Date is required.", ex.getMessage());
             }
         }
     }

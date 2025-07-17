@@ -7,6 +7,7 @@ import senior.project.dao.StudyPreferenceDao;
 import senior.project.dto.StudyPreferenceDTO;
 import senior.project.entity.StudyPreference;
 import senior.project.entity.User;
+import senior.project.exception.ValidationException;
 import senior.project.service.impl.StudyPreferenceServiceImpl;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
@@ -109,9 +110,10 @@ class StudyPreferenceServiceImplTest {
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
 
-            assertThrows(IllegalArgumentException.class, () -> {
+            ValidationException ex = assertThrows(ValidationException.class, () -> {
                 studyPreferenceService.saveOrUpdate(dto);
             });
+            assertThat(ex.getMessage()).isEqualTo("Minimum session duration must be greater than 0");
         }
     }
 
@@ -124,9 +126,10 @@ class StudyPreferenceServiceImplTest {
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
 
-            assertThrows(IllegalArgumentException.class, () -> {
+            ValidationException ex = assertThrows(ValidationException.class, () -> {
                 studyPreferenceService.saveOrUpdate(dto);
             });
+            assertThat(ex.getMessage()).isEqualTo("Maximum session duration must be greater than or equal to minimum");
         }
     }
 
@@ -138,9 +141,10 @@ class StudyPreferenceServiceImplTest {
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
 
-            assertThrows(IllegalArgumentException.class, () -> {
+            ValidationException ex = assertThrows(ValidationException.class, () -> {
                 studyPreferenceService.saveOrUpdate(dto);
             });
+            assertThat(ex.getMessage()).isEqualTo("Study preference information cannot be empty");
         }
     }
 
@@ -152,9 +156,10 @@ class StudyPreferenceServiceImplTest {
         try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
             mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
 
-            assertThrows(IllegalArgumentException.class, () -> {
+            ValidationException ex = assertThrows(ValidationException.class, () -> {
                 studyPreferenceService.saveOrUpdate(dto);
             });
+            assertThat(ex.getMessage()).isEqualTo("Break duration must be non-negative");
         }
     }
 
