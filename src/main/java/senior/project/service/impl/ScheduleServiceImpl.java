@@ -21,7 +21,9 @@ import senior.project.service.ScheduleService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
         List<Schedule> schedules = scheduleDao.findByUser(user);
-        System.out.println("Schedule count: " + schedules.size());
 
         if (schedules.isEmpty()) {
             return null; // No schedule found
@@ -99,7 +100,16 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (dto.getStudyPlan() != null) {
             for (SessionDTO sDto : dto.getStudyPlan()) {
                 // isScheduled is inherently true for this list
+                if (sDto.getDate() == null || sDto.getStart() == null && sDto.getIsScheduled()) {
+                    throw new ValidationException("Session date and start time are required.");
+                }
+
+                LocalDateTime sessionStartDateTime = LocalDateTime.of(sDto.getDate(), LocalTime.parse(sDto.getStart()) );
+                if (sessionStartDateTime.isBefore(LocalDateTime.now()) && sDto.getIsScheduled()) {
+                    throw new ValidationException("Cannot save session with a past date and time.");
+                }
                 allSessions.add(mapSessionDtoToEntity(sDto, schedule));
+                System.out.println(LocalDateTime.now());
             }
         }
 
@@ -155,17 +165,27 @@ public class ScheduleServiceImpl implements ScheduleService {
         List<Session> updatedSessions = new ArrayList<>();
 
         // 3. Iterate through incoming sessions to update or create them
+        System.out.println(LocalDateTime.now());
         for (SessionDTO sDto : incomingSessionDTOs) {
+            if (sDto.getDate() == null || sDto.getStart() == null && sDto.getIsScheduled()) {
+                throw new ValidationException("Session date and start time are required.");
+            }
+
+            LocalDateTime sessionStartDateTime = LocalDateTime.of(sDto.getDate(), LocalTime.parse(sDto.getStart()));
+            if (sessionStartDateTime.isBefore(LocalDateTime.now()) && sDto.getIsScheduled()) {
+                System.out.println(sessionStartDateTime);
+                throw new ValidationException("Cannot save session with a past date and time.");
+            }
+
             Session session = existingSessionsMap.get(sDto.getSessionId());
 
             if (session != null) {
-                // It's an existing session, so update its fields
-                mapper.updateSessionFromDto(sDto, session); // Assumes you have or create a mapper method for this
-                existingSessionsMap.remove(sDto.getSessionId()); // Remove from map to track processed sessions
+                mapper.updateSessionFromDto(sDto, session);
+                existingSessionsMap.remove(sDto.getSessionId());
             } else {
-                // It's a new session, so create a new entity
                 session = mapSessionDtoToEntity(sDto, schedule);
             }
+
             updatedSessions.add(session);
         }
 

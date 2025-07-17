@@ -699,7 +699,7 @@ class StudySetupServiceImplTest {
                         .build();
 
                 // 4. MOCK THE DEPENDENCIES CALLED BY getCurrentTerm()
-                when(termDao.getCurrentTerm()).thenReturn(Optional.of(mockCurrentTermEntity));
+                when(termDao.getCurrentTermByUser(mockUser)).thenReturn(Optional.of(mockCurrentTermEntity));
                 when(mapper.toTermDto(mockCurrentTermEntity)).thenReturn(mockTermResponse);
 
                 // Mock existing availabilities (these will be deleted)
@@ -781,7 +781,7 @@ class StudySetupServiceImplTest {
                         .endDate(mockCurrentTermEntity.getEndDate())
                         .build();
 
-                when(termDao.getCurrentTerm()).thenReturn(Optional.of(mockCurrentTermEntity));
+                when(termDao.getCurrentTermByUser(mockUser)).thenReturn(Optional.of(mockCurrentTermEntity));
                 when(mapper.toTermDto(mockCurrentTermEntity)).thenReturn(mockTermResponse);
 
                 // Missing date (null)

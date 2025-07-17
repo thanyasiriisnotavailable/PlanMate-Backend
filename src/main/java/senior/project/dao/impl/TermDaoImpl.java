@@ -32,8 +32,7 @@ public class TermDaoImpl implements TermDao {
     }
 
     @Override
-    public Optional<Term> getCurrentTerm() {
-        LocalDate today = LocalDate.now();
-        return termRepository.findCurrentTerm(today); // Uses JPQL @Query version
+    public Optional<Term> getCurrentTermByUser(User user) {
+        return termRepository.getCurrentTermByUser(user); // Uses JPQL @Query version
     }
 }

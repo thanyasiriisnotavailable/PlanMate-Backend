@@ -11,6 +11,7 @@ import senior.project.dto.plan.SessionDTO;
 import senior.project.entity.*;
 import senior.project.entity.plan.Schedule;
 import senior.project.entity.plan.Session;
+import senior.project.exception.ValidationException;
 import senior.project.service.impl.ScheduleServiceImpl;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -276,6 +278,47 @@ class ScheduleServiceImplTest {
             assertThrows(NullPointerException.class, () -> {
                 scheduleService.saveSchedule(null);
             });
+        }
+
+        @Test
+        @DisplayName("UTC-12-TC-07: Fail when session date and time is in the past")
+        void saveSchedule_withPastDateTimeSession_shouldThrowValidationException() {
+            try (MockedStatic<SecurityUtil> mockedSecurityUtil = Mockito.mockStatic(SecurityUtil.class)) {
+                // Arrange
+                mockedSecurityUtil.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
+                when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                Term mockTerm = new Term();
+                mockTerm.setTermId(1L);
+                mockTerm.setUser(mockUser);
+                mockTerm.setStartDate(LocalDate.of(2025, 7, 1));
+                mockTerm.setEndDate(LocalDate.of(2025, 12, 31));
+                when(termDao.findById(1L)).thenReturn(Optional.of(mockTerm));
+
+                // Create a session with a past date and time
+                LocalDate pastDate = LocalDate.now().minusDays(1);
+                LocalTime pastTime = LocalTime.now().minusHours(1); // definitely in the past
+
+                SessionDTO pastSession = SessionDTO.builder()
+                        .date(pastDate)
+                        .start(pastTime.toString())
+                        .end(pastTime.plusHours(1).toString())
+                        .isScheduled(true)
+                        .build();
+
+                ScheduleDTO scheduleWithPastSession = ScheduleDTO.builder()
+                        .termId(1L)
+                        .studyPlan(List.of(pastSession))
+                        .generatedAt(LocalDateTime.now().toString())
+                        .build();
+
+                // Act & Assert
+                ValidationException ex = assertThrows(ValidationException.class, () ->
+                        scheduleService.saveSchedule(scheduleWithPastSession)
+                );
+
+                assertEquals("Cannot save session with a past date and time.", ex.getMessage());
+            }
         }
     }
 }

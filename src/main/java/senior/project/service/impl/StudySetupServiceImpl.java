@@ -136,7 +136,7 @@ public class StudySetupServiceImpl implements StudySetupService {
     public TermResponseDTO getCurrentTerm() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
-        Optional<Term> currentTermOpt = termDao.getCurrentTerm();
+        Optional<Term> currentTermOpt = termDao.getCurrentTermByUser(user);
 
         if (currentTermOpt.isEmpty()) return null;
 
@@ -297,7 +297,6 @@ public class StudySetupServiceImpl implements StudySetupService {
     @Override
     @Transactional
     public void deleteCourse(Long courseId) {
-        String userUid = SecurityUtil.getAuthenticatedUid();
 
         Course courseToDelete = courseDao.findById(courseId);
 

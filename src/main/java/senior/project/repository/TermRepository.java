@@ -12,6 +12,6 @@ import java.util.*;
 public interface TermRepository extends JpaRepository<Term, Long> {
     Term findByUser(User user);
 
-    @Query("SELECT t FROM Term t WHERE t.startDate <= :today AND t.endDate >= :today")
-    Optional<Term> findCurrentTerm(@Param("today") LocalDate today);
+    @Query("SELECT t FROM Term t WHERE t.user = :user AND CURRENT_DATE BETWEEN t.startDate AND t.endDate")
+    Optional<Term> getCurrentTermByUser(@Param("user") User user);
 }

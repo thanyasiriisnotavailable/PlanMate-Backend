@@ -9,5 +9,5 @@ public interface TermDao {
     Term save(Term term);
     Term findByUser(User user);
     Optional<Term> findById(Long id);
-    Optional<Term> getCurrentTerm();
+    Optional<Term> getCurrentTermByUser(User user);
 }
