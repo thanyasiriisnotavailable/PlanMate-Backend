@@ -5,5 +5,5 @@ import java.util.Optional;
 
 public interface StudyPreferenceDao {
     StudyPreference savePreference(StudyPreference preference);
-    Optional<StudyPreference> findByUserUid(String userUid);
+    StudyPreference findByUserUid(String userUid);
 }

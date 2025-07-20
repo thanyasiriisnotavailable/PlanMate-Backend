@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    active: db
   application:
     name: PlanMateBackend
   datasource:
@@ -11,7 +9,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-
 firebase:
   credentials:
     path: src/main/resources/firebase-service-account.json

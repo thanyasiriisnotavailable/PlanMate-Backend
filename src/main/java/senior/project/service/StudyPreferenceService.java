@@ -1,9 +1,10 @@
 package senior.project.service;
 
-import senior.project.entity.StudyPreference;
+import senior.project.dto.StudyPreferenceDTO;
+
 import java.util.Optional;
 
 public interface StudyPreferenceService {
-    StudyPreference savePreference(StudyPreference preference);
-    Optional<StudyPreference> getPreference(String userUid);
+    StudyPreferenceDTO getPreference();
+    StudyPreferenceDTO saveOrUpdate(StudyPreferenceDTO dto);
 }
