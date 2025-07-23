@@ -1,4 +1,4 @@
-package senior.project.security.config;
+package senior.project.firebase.security;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;

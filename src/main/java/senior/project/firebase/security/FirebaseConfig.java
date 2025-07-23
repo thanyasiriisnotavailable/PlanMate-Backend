@@ -1,4 +1,4 @@
-package senior.project.security.config;
+package senior.project.firebase.security;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
