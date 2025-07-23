@@ -6,6 +6,8 @@ import senior.project.dao.StudyGroupDao;
 import senior.project.entity.StudyGroup;
 import senior.project.repository.StudyGroupRepository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class StudyGroupDaoImpl implements StudyGroupDao {
@@ -20,5 +22,10 @@ public class StudyGroupDaoImpl implements StudyGroupDao {
     @Override
     public boolean existsByJoinCode(String code) {
         return studyGroupRepository.existsByJoinCode(code);
+    }
+
+    @Override
+    public Optional<StudyGroup> findByJoinCode(String joinCode) {
+        return studyGroupRepository.findByJoinCode(joinCode);
     }
 }
