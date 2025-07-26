@@ -4,11 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.FocusSessionRequestDTO;
-import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 import senior.project.service.SessionService;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 

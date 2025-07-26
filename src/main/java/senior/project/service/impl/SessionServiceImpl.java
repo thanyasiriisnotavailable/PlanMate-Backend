@@ -1,13 +1,18 @@
 package senior.project.service.impl;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.FocusSessionDao;
+import senior.project.dao.GroupMemberDao;
 import senior.project.dao.SessionDao;
 import senior.project.dao.UserDao;
 import senior.project.entity.FocusSession;
+import senior.project.entity.GroupMember;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
+import senior.project.enums.FocusStatus;
 import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.SessionService;
 import senior.project.util.SecurityUtil;
@@ -16,12 +21,14 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SessionServiceImpl implements SessionService {
     private final SessionDao sessionDao;
     private final FocusSessionDao focusSessionDao;
+    private final GroupMemberDao groupMemberDao;
     private final FirebaseFocusService firebaseFocusService;
     private final UserDao userDao;
 
@@ -46,30 +53,51 @@ public class SessionServiceImpl implements SessionService {
 
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
-
         long durationSeconds = session.getDuration();
+
+        LocalDateTime focusStart = LocalDateTime.now();
 
         FocusSession focusSession = FocusSession.builder()
                 .user(user)
                 .session(session)
-                .focusStart(LocalDateTime.now())
-                .completed(false)
+                .focusStart(focusStart)
+                .status(FocusStatus.FOCUSING)
                 .build();
 
         focusSessionDao.save(focusSession);
 
+        // Fetch display name
+        String displayName = user.getEmail(); // fallback
+        try {
+            String firebaseName = FirebaseAuth.getInstance().getUser(userUid).getDisplayName();
+            if (firebaseName != null && !firebaseName.isBlank()) {
+                displayName = firebaseName;
+            }
+        } catch (FirebaseAuthException ignored) {
+        }
+
+        // Collect group IDs
+        List<Long> groupIds = groupMemberDao.findByUser(user).stream()
+                .map(member -> member.getGroup().getId())
+                .toList();
+
+        // Send to Firebase
         firebaseFocusService.writeFocusSession(
                 focusSession.getId(),
-                user.getUid(),
+                userUid,
                 session.getSessionId(),
-                durationSeconds
+                durationSeconds,
+                displayName,
+                groupIds,
+                focusStart,
+                focusSession.getStatus()
         );
 
         return Map.of(
                 "message", "Focus session started",
                 "focusSessionId", focusSession.getId(),
                 "sessionId", session.getSessionId(),
-                "startTime", focusSession.getFocusStart(),
+                "startTime", focusStart,
                 "duration", durationSeconds
         );
     }

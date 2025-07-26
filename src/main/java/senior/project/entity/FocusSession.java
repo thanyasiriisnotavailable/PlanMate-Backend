@@ -3,6 +3,7 @@ package senior.project.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import senior.project.entity.plan.Session;
+import senior.project.enums.FocusStatus;
 
 import java.time.LocalDateTime;
 
@@ -30,5 +31,5 @@ public class FocusSession {
 
     private Long elapsedSeconds; // useful for analysis
 
-    private Boolean completed;
+    private FocusStatus status;
 }

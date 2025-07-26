@@ -8,6 +8,8 @@ import senior.project.entity.StudyGroup;
 import senior.project.entity.User;
 import senior.project.repository.GroupMemberRepository;
 
+import java.util.List;
+
 @Repository
 @RequiredArgsConstructor
 public class GroupMemberDaoImpl implements GroupMemberDao {
@@ -21,5 +23,10 @@ public class GroupMemberDaoImpl implements GroupMemberDao {
     @Override
     public Boolean existsByUserAndGroup(User user, StudyGroup group) {
         return groupMemberRepository.existsByUserAndGroup(user, group);
+    }
+
+    @Override
+    public List<GroupMember> findByUser(User user) {
+        return groupMemberRepository.findByUser(user);
     }
 }
