@@ -34,8 +34,11 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         String name = groupInfo.getGroupName();
         String image = groupInfo.getImageUrl();
 
-        if (name == null || name.trim().isEmpty() || name.length() > 50) {
-            return ResponseEntity.badRequest().body("Group name is required and must be under 50 characters.");
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Group name is required.");
+        }
+        if (name.length() > 50) {
+            return ResponseEntity.badRequest().body("Group name must be under 50 characters.");
         }
 
         String joinCode = generateUniqueJoinCode();

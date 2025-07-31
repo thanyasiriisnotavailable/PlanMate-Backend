@@ -9,7 +9,6 @@ import senior.project.dao.GroupMemberDao;
 import senior.project.dao.SessionDao;
 import senior.project.dao.UserDao;
 import senior.project.entity.FocusSession;
-import senior.project.entity.GroupMember;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 import senior.project.enums.FocusStatus;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +34,10 @@ public class SessionServiceImpl implements SessionService {
     public Map<String, List<Session>> getToDoListSessions() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
+
+        if (user == null) {
+            throw new NullPointerException("User not found for UID: " + userUid);
+        }
 
         Map<String, List<Session>> sessionMap = new HashMap<>();
         sessionMap.put("today", sessionDao.getTodaySessions(user));
