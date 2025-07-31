@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import senior.project.dao.GroupMemberDao;
 import senior.project.dao.StudyGroupDao;
 import senior.project.dao.UserDao;
+import senior.project.dto.GroupMemberDTO;
 import senior.project.dto.GroupRequestDTO;
 import senior.project.dto.JoinGroupRequestDTO;
+import senior.project.dto.StudyGroupResponseDTO;
 import senior.project.entity.GroupMember;
 import senior.project.entity.StudyGroup;
 import senior.project.entity.User;
@@ -15,6 +17,7 @@ import senior.project.service.StudyGroupService;
 import senior.project.util.SecurityUtil;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,6 +31,39 @@ public class StudyGroupServiceImpl implements StudyGroupService {
     private static final String JOIN_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int JOIN_CODE_LENGTH = 6;
     private final SecureRandom random = new SecureRandom();
+
+    @Override
+    public StudyGroupResponseDTO getGroups() {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        User user = userDao.findByUid(userUid);
+
+        // Get all group memberships for the user
+        List<GroupMember> groupMemberships = groupMemberDao.findByUser(user);
+
+        if (groupMemberships.isEmpty()) {
+            return null; // No groups found
+        }
+
+        // For simplicity, returning the first group only (as per controller definition)
+        GroupMember firstMembership = groupMemberships.get(0);
+        StudyGroup group = firstMembership.getGroup();
+
+        StudyGroupResponseDTO responseDTO = new StudyGroupResponseDTO();
+        responseDTO.setId(group.getId());
+        responseDTO.setName(group.getName());
+        responseDTO.setImageUrl(group.getImageUrl());
+        responseDTO.setJoinCode(group.getJoinCode());
+
+        List<GroupMemberDTO> memberDTOs = group.getMembers().stream().map(member -> {
+            GroupMemberDTO dto = new GroupMemberDTO();
+            dto.setId(member.getId());
+            dto.setUser(member.getUser());
+            return dto;
+        }).toList();
+
+        responseDTO.setMembers(memberDTOs);
+        return responseDTO;
+    }
 
     @Override
     public ResponseEntity<?> createGroup(GroupRequestDTO groupInfo) {
@@ -87,6 +123,10 @@ public class StudyGroupServiceImpl implements StudyGroupService {
 
             String userUid = SecurityUtil.getAuthenticatedUid();
             User user = userDao.findByUid(userUid);
+
+            if (user == null) {
+                return ResponseEntity.badRequest().body("Invalid user");
+            }
 
             // Check if user is already a member
             if (groupMemberDao.existsByUserAndGroup(user, group)) {

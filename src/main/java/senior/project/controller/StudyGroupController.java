@@ -2,12 +2,10 @@ package senior.project.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import senior.project.dto.GroupRequestDTO;
 import senior.project.dto.JoinGroupRequestDTO;
+import senior.project.dto.StudyGroupResponseDTO;
 import senior.project.service.StudyGroupService;
 
 @RestController
@@ -16,7 +14,18 @@ import senior.project.service.StudyGroupService;
 public class StudyGroupController {
     private final StudyGroupService studyGroupService;
 
-    @PostMapping()
+    @GetMapping
+    public ResponseEntity<StudyGroupResponseDTO> getGroups() {
+        StudyGroupResponseDTO dto = studyGroupService.getGroups();
+
+        if (dto == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping
     public ResponseEntity<?> createGroup(@RequestBody GroupRequestDTO dto) {
         return studyGroupService.createGroup(dto);
     }
