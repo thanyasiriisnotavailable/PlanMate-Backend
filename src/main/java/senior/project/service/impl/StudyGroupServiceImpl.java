@@ -33,37 +33,31 @@ public class StudyGroupServiceImpl implements StudyGroupService {
     private final SecureRandom random = new SecureRandom();
 
     @Override
-    public StudyGroupResponseDTO getGroups() {
+    public List<StudyGroupResponseDTO> getGroups() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
 
-        // Get all group memberships for the user
         List<GroupMember> groupMemberships = groupMemberDao.findByUser(user);
 
-        if (groupMemberships.isEmpty()) {
-            return null; // No groups found
-        }
+        return groupMemberships.stream().map(member -> {
+            StudyGroup group = member.getGroup();
+            StudyGroupResponseDTO dto = new StudyGroupResponseDTO();
+            dto.setId(group.getId());
+            dto.setName(group.getName());
+            dto.setImageUrl(group.getImageUrl());
+            dto.setJoinCode(group.getJoinCode());
 
-        // For simplicity, returning the first group only (as per controller definition)
-        GroupMember firstMembership = groupMemberships.get(0);
-        StudyGroup group = firstMembership.getGroup();
-
-        StudyGroupResponseDTO responseDTO = new StudyGroupResponseDTO();
-        responseDTO.setId(group.getId());
-        responseDTO.setName(group.getName());
-        responseDTO.setImageUrl(group.getImageUrl());
-        responseDTO.setJoinCode(group.getJoinCode());
-
-        List<GroupMemberDTO> memberDTOs = group.getMembers().stream().map(member -> {
-            GroupMemberDTO dto = new GroupMemberDTO();
-            dto.setId(member.getId());
-            dto.setUser(member.getUser());
+            List<GroupMemberDTO> memberDTOs = group.getMembers().stream().map(m -> {
+                GroupMemberDTO mdto = new GroupMemberDTO();
+                mdto.setId(m.getId());
+                mdto.setUser(m.getUser());
+                return mdto;
+            }).toList();
+            dto.setMembers(memberDTOs);
             return dto;
         }).toList();
-
-        responseDTO.setMembers(memberDTOs);
-        return responseDTO;
     }
+
 
     @Override
     public ResponseEntity<?> createGroup(GroupRequestDTO groupInfo) {

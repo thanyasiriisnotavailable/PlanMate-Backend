@@ -8,6 +8,8 @@ import senior.project.dto.JoinGroupRequestDTO;
 import senior.project.dto.StudyGroupResponseDTO;
 import senior.project.service.StudyGroupService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/groups")
 @RequiredArgsConstructor
@@ -15,14 +17,9 @@ public class StudyGroupController {
     private final StudyGroupService studyGroupService;
 
     @GetMapping
-    public ResponseEntity<StudyGroupResponseDTO> getGroups() {
-        StudyGroupResponseDTO dto = studyGroupService.getGroups();
-
-        if (dto == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(dto);
+    public ResponseEntity<List<StudyGroupResponseDTO>> getGroups() {
+        List<StudyGroupResponseDTO> groups = studyGroupService.getGroups();
+        return ResponseEntity.ok(groups);
     }
 
     @PostMapping
