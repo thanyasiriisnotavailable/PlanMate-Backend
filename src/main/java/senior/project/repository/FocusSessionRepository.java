@@ -37,4 +37,9 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Stri
                                         @Param("status") FocusStatus status,
                                         @Param("start") LocalDateTime start,
                                         @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(fs.elapsedSeconds), 0) " +
+            "FROM FocusSession fs " +
+            "WHERE fs.user.uid = :uid AND fs.status = 'COMPLETED'")
+    long sumElapsedSecondsByUserUid(String uid);
 }

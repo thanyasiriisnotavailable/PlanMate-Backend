@@ -10,4 +10,5 @@ public interface GroupMemberDao {
     GroupMember save(GroupMember groupMember);
     Boolean existsByUserAndGroup(User user, StudyGroup group);
     List<GroupMember> findByUser(User user);
+    List<GroupMember> findByGroupId(Long groupId);
 }

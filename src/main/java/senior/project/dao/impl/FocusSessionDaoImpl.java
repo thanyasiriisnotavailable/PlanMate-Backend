@@ -20,4 +20,9 @@ public class FocusSessionDaoImpl implements FocusSessionDao {
     public FocusSession findById(String id) {
         return focusSessionRepository.findById(id).orElse(null);
     }
+
+    @Override
+    public long sumFocusSecondsByUser(String uid) {
+        return focusSessionRepository.sumElapsedSecondsByUserUid(uid);
+    }
 }

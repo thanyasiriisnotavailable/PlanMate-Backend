@@ -3,13 +3,8 @@ package senior.project.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import senior.project.dao.GroupMemberDao;
-import senior.project.dao.StudyGroupDao;
-import senior.project.dao.UserDao;
-import senior.project.dto.GroupMemberDTO;
-import senior.project.dto.GroupRequestDTO;
-import senior.project.dto.JoinGroupRequestDTO;
-import senior.project.dto.StudyGroupResponseDTO;
+import senior.project.dao.*;
+import senior.project.dto.*;
 import senior.project.entity.GroupMember;
 import senior.project.entity.StudyGroup;
 import senior.project.entity.User;
@@ -17,6 +12,7 @@ import senior.project.service.StudyGroupService;
 import senior.project.util.SecurityUtil;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +22,8 @@ public class StudyGroupServiceImpl implements StudyGroupService {
 
     private final StudyGroupDao studyGroupDao;
     private final GroupMemberDao groupMemberDao;
+    private final SessionDao sessionDao;
+    private final FocusSessionDao focusSessionDao;
     private final UserDao userDao;
 
     private static final String JOIN_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -156,5 +154,44 @@ public class StudyGroupServiceImpl implements StudyGroupService {
             code = generateJoinCode();
         } while (studyGroupDao.existsByJoinCode(code));
         return code;
+    }
+
+    @Override
+    public List<GroupMemberProgressDTO> getGroupProgress(Long groupId) {
+        List<GroupMember> members = groupMemberDao.findByGroupId(groupId);
+        if (members.isEmpty()) return List.of();
+
+        List<GroupMemberProgressDTO> progressList = new ArrayList<>();
+
+        for (GroupMember member : members) {
+            User user = member.getUser();
+            String uid = user.getUid();
+
+            // --- Fetch Data ---
+            int totalPlannedSessions = sessionDao.countTotalPlannedSessionsForUser(uid);
+            int completedSessions = sessionDao.countCompletedSessionsForUser(uid);
+
+            double percentageCompleted = (totalPlannedSessions == 0)
+                    ? 0.0
+                    : ((double) completedSessions / totalPlannedSessions) * 100.0;
+
+            long totalFocusSeconds = focusSessionDao.sumFocusSecondsByUser(uid);
+            double focusHours = totalFocusSeconds / 3600.0;
+
+            // --- Score Formula (Weighted) ---
+            double score = (percentageCompleted * 0.6) + (focusHours * 0.4);
+
+            // --- Create DTO ---
+            GroupMemberProgressDTO dto = GroupMemberProgressDTO.builder()
+                    .userUid(uid)
+                    .completedSessions(completedSessions)
+                    .totalFocusSeconds(totalFocusSeconds)
+                    .totalScore(Math.round(score * 100.0) / 100.0)
+                    .build();
+
+            progressList.add(dto);
+        }
+
+        return progressList;
     }
 }

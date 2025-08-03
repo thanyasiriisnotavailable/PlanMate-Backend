@@ -29,4 +29,9 @@ public class GroupMemberDaoImpl implements GroupMemberDao {
     public List<GroupMember> findByUser(User user) {
         return groupMemberRepository.findByUser(user);
     }
+
+    @Override
+    public List<GroupMember> findByGroupId(Long groupId) {
+        return groupMemberRepository.findByGroupId(groupId);
+    }
 }

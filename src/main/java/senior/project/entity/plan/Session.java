@@ -6,15 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import senior.project.entity.Assignment;
-import senior.project.entity.Course;
-import senior.project.entity.Exam;
-import senior.project.entity.Topic;
+import senior.project.entity.*;
 import senior.project.entity.plan.Schedule;
 import senior.project.enums.SessionType;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Entity
 @Table(name = "sessions")
@@ -49,4 +47,7 @@ public class Session {
 
     @ManyToOne
     private Assignment assignment;
+
+    @OneToMany(mappedBy = "session")
+    private List<FocusSession> focusSessions;
 }
