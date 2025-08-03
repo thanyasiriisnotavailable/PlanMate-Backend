@@ -25,11 +25,18 @@ public class FocusSession {
     @ManyToOne
     private Session session;
 
+    @ManyToOne
+    private Course course;
+
+    @ManyToOne
+    private Topic topic;
+
     private LocalDateTime focusStart;
 
     private LocalDateTime focusEnd;
 
     private Long elapsedSeconds; // useful for analysis
 
+    @Enumerated(EnumType.STRING)
     private FocusStatus status;
 }

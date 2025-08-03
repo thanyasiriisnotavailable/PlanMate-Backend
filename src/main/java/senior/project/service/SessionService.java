@@ -1,5 +1,6 @@
 package senior.project.service;
 
+import senior.project.entity.FocusSession;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 
@@ -9,5 +10,5 @@ import java.util.Map;
 public interface SessionService {
     Map<String, List<Session>> getToDoListSessions();
     Map<String, Object> startFocusSession(String sessionId);
-
+    FocusSession endFocusSession(String focusSessionId);
 }

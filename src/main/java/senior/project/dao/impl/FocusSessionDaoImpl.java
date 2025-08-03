@@ -15,4 +15,9 @@ public class FocusSessionDaoImpl implements FocusSessionDao {
     public FocusSession save(FocusSession focusSession) {
         return focusSessionRepository.save(focusSession);
     }
+
+    @Override
+    public FocusSession findById(String id) {
+        return focusSessionRepository.findById(id).orElse(null);
+    }
 }

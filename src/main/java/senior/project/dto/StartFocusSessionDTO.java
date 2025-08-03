@@ -6,6 +6,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FocusSessionRequestDTO {
+public class StartFocusSessionDTO {
     private String sessionId;
 }

@@ -3,7 +3,8 @@ package senior.project.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import senior.project.dto.FocusSessionRequestDTO;
+import senior.project.dto.EndFocusSessionDTO;
+import senior.project.dto.StartFocusSessionDTO;
 import senior.project.entity.plan.Session;
 import senior.project.service.SessionService;
 
@@ -28,7 +29,7 @@ public class SessionController {
     }
 
     @PostMapping("/start")
-    public ResponseEntity<?> startFocusSession(@RequestBody FocusSessionRequestDTO request) {
+    public ResponseEntity<?> startFocusSession(@RequestBody StartFocusSessionDTO request) {
 
         try {
             var response = sessionService.startFocusSession(request.getSessionId());
@@ -36,7 +37,20 @@ public class SessionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (RuntimeException e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Unable to start session. Please try again later.");
+        }
+    }
+
+    @PostMapping("/end")
+    public ResponseEntity<?> endFocusSession(@RequestBody EndFocusSessionDTO request) {
+        try {
+            var response = sessionService.endFocusSession(request.getFocusSessionId());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to end session: " + e.getMessage());
         }
     }
 }

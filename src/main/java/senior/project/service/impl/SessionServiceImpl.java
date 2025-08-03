@@ -2,6 +2,7 @@ package senior.project.service.impl;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.FocusSessionDao;
@@ -84,16 +85,21 @@ public class SessionServiceImpl implements SessionService {
                 .toList();
 
         // Send to Firebase
-        firebaseFocusService.writeFocusSession(
-                focusSession.getId(),
-                userUid,
-                session.getSessionId(),
-                durationSeconds,
-                displayName,
-                groupIds,
-                focusStart,
-                focusSession.getStatus()
-        );
+        try {
+            firebaseFocusService.writeFocusSession(
+                    focusSession.getId(),
+                    userUid,
+                    session.getSessionId(),
+                    durationSeconds,
+                    displayName,
+                    groupIds,
+                    focusStart,
+                    focusSession.getStatus()
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Firebase sync failed: " + ex.getMessage());
+        }
 
         return Map.of(
                 "message", "Focus session started",
@@ -102,5 +108,24 @@ public class SessionServiceImpl implements SessionService {
                 "startTime", focusStart,
                 "duration", durationSeconds
         );
+    }
+
+    @Override
+    @Transactional
+    public FocusSession endFocusSession(String focusSessionId) {
+        FocusSession focusSession = focusSessionDao.findById(focusSessionId);
+
+        if (focusSession.getFocusEnd() != null || focusSession.getStatus() == FocusStatus.COMPLETED) {
+            throw new IllegalStateException("This session has already been completed.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        focusSession.setFocusEnd(now);
+        focusSession.setElapsedSeconds(
+                java.time.Duration.between(focusSession.getFocusStart(), now).getSeconds()
+        );
+        focusSession.setStatus(FocusStatus.COMPLETED);
+
+        return focusSessionDao.save(focusSession);
     }
 }
