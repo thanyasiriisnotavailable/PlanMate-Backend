@@ -7,7 +7,6 @@ import senior.project.dto.GroupMemberProgressDTO;
 import senior.project.dto.GroupRequestDTO;
 import senior.project.dto.JoinGroupRequestDTO;
 import senior.project.dto.StudyGroupResponseDTO;
-import senior.project.enums.ExamType;
 import senior.project.service.StudyGroupService;
 
 import java.util.List;

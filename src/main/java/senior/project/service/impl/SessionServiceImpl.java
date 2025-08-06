@@ -9,12 +9,14 @@ import senior.project.dao.FocusSessionDao;
 import senior.project.dao.GroupMemberDao;
 import senior.project.dao.SessionDao;
 import senior.project.dao.UserDao;
+import senior.project.dto.plan.SessionDTO;
 import senior.project.entity.FocusSession;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 import senior.project.enums.FocusStatus;
 import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.SessionService;
+import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
 import java.time.LocalDateTime;
@@ -30,9 +32,10 @@ public class SessionServiceImpl implements SessionService {
     private final GroupMemberDao groupMemberDao;
     private final FirebaseFocusService firebaseFocusService;
     private final UserDao userDao;
+    private final DTOMapper dtoMapper;
 
     @Override
-    public Map<String, List<Session>> getToDoListSessions() {
+    public Map<String, List<SessionDTO>> getToDoListSessions() {
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
 
@@ -43,8 +46,15 @@ public class SessionServiceImpl implements SessionService {
         Map<String, List<Session>> sessionMap = new HashMap<>();
         sessionMap.put("today", sessionDao.getTodaySessions(user));
         sessionMap.put("tomorrow", sessionDao.getTomorrowSessions(user));
-        sessionMap.put("future", sessionDao.getFutureSessions(user));
-        return sessionMap;
+        sessionMap.put("upcoming", sessionDao.getFutureSessions(user));
+
+        // Convert to DTOs
+        Map<String, List<SessionDTO>> dtoMap = new HashMap<>();
+        sessionMap.forEach((key, sessions) ->
+                dtoMap.put(key, sessions.stream().map(dtoMapper::toSessionDto).toList())
+        );
+
+        return dtoMap;
     }
 
     @Override
