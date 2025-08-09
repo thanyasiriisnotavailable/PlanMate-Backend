@@ -149,6 +149,7 @@ public interface DTOMapper {
     Session toSession(SessionDTO sDto);
 
     @Mapping(source = "sessionId", target = "sessionId")
+    @Mapping(source = "isCompleted", target = "isCompleted")
     @Mapping(target = "isScheduled", source = "isScheduled")
     @Mapping(source = "course.courseId", target = "courseId")
     @Mapping(source = "topic.id", target = "topicId")

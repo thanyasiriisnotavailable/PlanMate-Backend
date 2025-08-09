@@ -128,6 +128,12 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         );
         focusSession.setStatus(FocusStatus.COMPLETED);
 
+        Session relatedSession = focusSession.getSession();
+        if (relatedSession != null) {
+            relatedSession.setIsCompleted(true);
+            sessionDao.save(relatedSession);
+        }
+
         focusSessionDao.save(focusSession);
 
         return dtoMapper.toFocusSessionDto(focusSession);
