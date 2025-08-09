@@ -28,9 +28,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SessionServiceImpl implements SessionService {
     private final SessionDao sessionDao;
-    private final FocusSessionDao focusSessionDao;
-    private final GroupMemberDao groupMemberDao;
-    private final FirebaseFocusService firebaseFocusService;
     private final UserDao userDao;
     private final DTOMapper dtoMapper;
 
@@ -55,87 +52,5 @@ public class SessionServiceImpl implements SessionService {
         );
 
         return dtoMap;
-    }
-
-    @Override
-    public Map<String, Object> startFocusSession(String sessionId) {
-        Session session = sessionDao.findById(sessionId);
-        if (session == null) {
-            throw new IllegalArgumentException("Session not found or unauthorized.");
-        }
-
-        String userUid = SecurityUtil.getAuthenticatedUid();
-        User user = userDao.findByUid(userUid);
-        long durationSeconds = session.getDuration();
-
-        LocalDateTime focusStart = LocalDateTime.now();
-
-        FocusSession focusSession = FocusSession.builder()
-                .user(user)
-                .session(session)
-                .focusStart(focusStart)
-                .status(FocusStatus.FOCUSING)
-                .build();
-
-        focusSessionDao.save(focusSession);
-
-        // Fetch display name
-        String displayName = user.getEmail(); // fallback
-        try {
-            String firebaseName = FirebaseAuth.getInstance().getUser(userUid).getDisplayName();
-            if (firebaseName != null && !firebaseName.isBlank()) {
-                displayName = firebaseName;
-            }
-        } catch (FirebaseAuthException ignored) {
-        }
-
-        // Collect group IDs
-        List<Long> groupIds = groupMemberDao.findByUser(user).stream()
-                .map(member -> member.getGroup().getId())
-                .toList();
-
-        // Send to Firebase
-        try {
-            firebaseFocusService.writeFocusSession(
-                    focusSession.getId(),
-                    userUid,
-                    session.getSessionId(),
-                    durationSeconds,
-                    displayName,
-                    groupIds,
-                    focusStart,
-                    focusSession.getStatus()
-            );
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            System.err.println("Firebase sync failed: " + ex.getMessage());
-        }
-
-        return Map.of(
-                "message", "Focus session started",
-                "focusSessionId", focusSession.getId(),
-                "sessionId", session.getSessionId(),
-                "startTime", focusStart,
-                "duration", durationSeconds
-        );
-    }
-
-    @Override
-    @Transactional
-    public FocusSession endFocusSession(String focusSessionId) {
-        FocusSession focusSession = focusSessionDao.findById(focusSessionId);
-
-        if (focusSession.getFocusEnd() != null || focusSession.getStatus() == FocusStatus.COMPLETED) {
-            throw new IllegalStateException("This session has already been completed.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        focusSession.setFocusEnd(now);
-        focusSession.setElapsedSeconds(
-                java.time.Duration.between(focusSession.getFocusStart(), now).getSeconds()
-        );
-        focusSession.setStatus(FocusStatus.COMPLETED);
-
-        return focusSessionDao.save(focusSession);
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import senior.project.entity.plan.Session;
 import senior.project.enums.FocusStatus;
+import senior.project.enums.SessionType;
 
 import java.time.LocalDateTime;
 
@@ -31,12 +32,20 @@ public class FocusSession {
     @ManyToOne
     private Topic topic;
 
+    @ManyToOne
+    private Assignment assignment;
+
     private LocalDateTime focusStart;
 
     private LocalDateTime focusEnd;
 
     private Long elapsedSeconds; // useful for analysis
 
+    private Long plannedDuration;
+
     @Enumerated(EnumType.STRING)
     private FocusStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private SessionType sessionType;
 }

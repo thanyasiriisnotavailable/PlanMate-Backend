@@ -9,6 +9,7 @@ import senior.project.enums.FocusStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 public interface FocusSessionRepository extends JpaRepository<FocusSession, String> {
 
@@ -42,4 +43,6 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Stri
             "FROM FocusSession fs " +
             "WHERE fs.user.uid = :uid AND fs.status = 'COMPLETED'")
     long sumElapsedSecondsByUserUid(String uid);
+
+    Optional<FocusSession> findByUserUidAndStatus(String userUid, FocusStatus focusStatus);
 }

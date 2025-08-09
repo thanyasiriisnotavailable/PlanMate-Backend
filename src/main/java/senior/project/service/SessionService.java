@@ -8,6 +8,4 @@ import java.util.Map;
 
 public interface SessionService {
     Map<String, List<SessionDTO>> getToDoListSessions();
-    Map<String, Object> startFocusSession(String sessionId);
-    FocusSession endFocusSession(String focusSessionId);
 }

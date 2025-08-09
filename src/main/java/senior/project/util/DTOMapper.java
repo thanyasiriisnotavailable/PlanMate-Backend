@@ -237,4 +237,12 @@ public interface DTOMapper {
                 .isCompleted(session.getIsCompleted())
                 .build();
     }
+
+    @Mapping(target = "session", source = "session") // delegate to toSessionDto
+    @Mapping(target = "courseId", source = "course.courseId")
+    @Mapping(target = "topicId", source = "topic.id")
+    @Mapping(target = "assignmentId", source = "assignment.id")
+    FocusSessionDTO toFocusSessionDto(FocusSession focusSession);
+
+    List<FocusSessionDTO> toFocusSessionDtos(List<FocusSession> focusSessions);
 }

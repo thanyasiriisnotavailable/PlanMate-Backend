@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.FocusSessionDao;
 import senior.project.entity.FocusSession;
+import senior.project.enums.FocusStatus;
 import senior.project.repository.FocusSessionRepository;
 
 @Repository
@@ -24,5 +25,10 @@ public class FocusSessionDaoImpl implements FocusSessionDao {
     @Override
     public long sumFocusSecondsByUser(String uid) {
         return focusSessionRepository.sumElapsedSecondsByUserUid(uid);
+    }
+
+    @Override
+    public FocusSession findByUserUidAndStatus(String userUid, FocusStatus focusStatus) {
+        return focusSessionRepository.findByUserUidAndStatus(userUid, focusStatus).orElse(null);
     }
 }
