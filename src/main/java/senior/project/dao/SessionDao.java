@@ -13,4 +13,5 @@ public interface SessionDao {
     Session findById(String id);
     int countTotalPlannedSessionsForUser(String uid);
     int countCompletedSessionsForUser(String uid);
+    List<Session> getCompletedSessions(User user);
 }

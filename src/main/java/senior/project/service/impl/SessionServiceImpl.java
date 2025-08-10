@@ -53,4 +53,20 @@ public class SessionServiceImpl implements SessionService {
 
         return dtoMap;
     }
+
+    @Override
+    public List<SessionDTO> getCompletedSessions() {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        User user = userDao.findByUid(userUid);
+
+        if (user == null) {
+            throw new NullPointerException("User not found for UID: " + userUid);
+        }
+
+        List<Session> completedSessions = sessionDao.getCompletedSessions(user);
+
+        return completedSessions.stream()
+                .map(dtoMapper::toSessionDto)
+                .toList();
+    }
 }

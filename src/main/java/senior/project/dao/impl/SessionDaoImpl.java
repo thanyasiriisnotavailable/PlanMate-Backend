@@ -50,4 +50,9 @@ public class SessionDaoImpl implements SessionDao {
     public int countCompletedSessionsForUser(String uid) {
         return sessionRepository.countBySchedule_User_UidAndFocusSessions_Status(uid, FocusStatus.COMPLETED);
     }
+
+    @Override
+    public List<Session> getCompletedSessions(User user) {
+        return sessionRepository.getCompletedSessions(user);
+    }
 }

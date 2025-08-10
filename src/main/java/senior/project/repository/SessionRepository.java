@@ -1,6 +1,8 @@
 package senior.project.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import senior.project.entity.User;
 import senior.project.entity.plan.Schedule;
 import senior.project.entity.plan.Session;
@@ -14,4 +16,7 @@ public interface SessionRepository extends JpaRepository<Session, String> {
     List<Session> findBySchedule_UserAndDateAfter(User user, LocalDate date);
     int countBySchedule_User_Uid(String uid);
     int countBySchedule_User_UidAndFocusSessions_Status(String uid, FocusStatus status);
+
+    @Query("SELECT s FROM Session s WHERE s.schedule.user = :user AND s.isCompleted = true")
+    List<Session> getCompletedSessions(@Param("user") User user);
 }

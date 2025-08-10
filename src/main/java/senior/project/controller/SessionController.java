@@ -29,4 +29,10 @@ public class SessionController {
 
         return ResponseEntity.ok(dto);
     }
+
+    @GetMapping("/completed")
+    public ResponseEntity<List<SessionDTO>> getCompletedSessions() {
+        List<SessionDTO> completedSessions = sessionService.getCompletedSessions();
+        return ResponseEntity.ok(completedSessions);
+    }
 }

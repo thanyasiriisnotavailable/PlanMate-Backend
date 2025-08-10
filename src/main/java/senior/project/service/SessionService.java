@@ -8,4 +8,5 @@ import java.util.Map;
 
 public interface SessionService {
     Map<String, List<SessionDTO>> getToDoListSessions();
+    List<SessionDTO> getCompletedSessions();
 }
