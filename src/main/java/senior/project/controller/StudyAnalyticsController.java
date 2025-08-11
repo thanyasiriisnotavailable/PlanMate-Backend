@@ -10,6 +10,8 @@ import senior.project.dto.StudyAnalyticsDTO;
 import senior.project.enums.Range;
 import senior.project.service.StudyAnalyticsService;
 
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/analytics")
 @RequiredArgsConstructor
@@ -19,9 +21,10 @@ public class StudyAnalyticsController {
 
     @GetMapping
     public ResponseEntity<StudyAnalyticsDTO> getAnalytics(
-            @RequestParam Range range  // day, week, month, year
+            @RequestParam Range range,       // day, week, month, year
+            @RequestParam LocalDate date     // selected date
     ) {
-        StudyAnalyticsDTO analytics = studyAnalyticsService.getAnalytics(range.toString());
+        StudyAnalyticsDTO analytics = studyAnalyticsService.getAnalytics(range.toString(), date);
         return ResponseEntity.ok(analytics);
     }
 }

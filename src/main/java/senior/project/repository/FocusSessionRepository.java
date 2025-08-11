@@ -24,14 +24,6 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Stri
                            @Param("start") LocalDateTime start,
                            @Param("end") LocalDateTime end);
 
-    @Query("SELECT DATE(f.focusStart), SUM(f.elapsedSeconds) FROM FocusSession f " +
-            "WHERE f.user.uid = :userUid AND f.status = :status AND f.focusStart BETWEEN :start AND :end " +
-            "GROUP BY DATE(f.focusStart)")
-    List<Object[]> groupDailyFocusDurations(@Param("userUid") String userUid,
-                                               @Param("status") FocusStatus status,
-                                               @Param("start") LocalDateTime start,
-                                               @Param("end") LocalDateTime end);
-
     @Query("SELECT f.course.name, SUM(f.elapsedSeconds) " +
             "FROM FocusSession f " +
             "WHERE f.user.uid = :userUid AND f.status = :status " +
@@ -48,4 +40,19 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Stri
     long sumElapsedSecondsByUserUid(String uid);
 
     Optional<FocusSession> findByUserUidAndStatus(String userUid, FocusStatus focusStatus);
+
+    @Query("""
+    SELECT f.id, f.course.name, f.focusStart, f.focusEnd, f.elapsedSeconds
+    FROM FocusSession f
+    WHERE f.user.uid = :userUid 
+      AND f.status = :status 
+      AND f.focusStart BETWEEN :start AND :end
+    ORDER BY f.focusStart ASC
+""")
+    List<Object[]> findCompletedSessionsWithTimes(
+            @Param("userUid") String userUid,
+            @Param("status") FocusStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
