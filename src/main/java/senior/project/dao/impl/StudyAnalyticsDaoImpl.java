@@ -9,6 +9,7 @@ import senior.project.repository.FocusSessionRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -30,13 +31,21 @@ public class StudyAnalyticsDaoImpl implements StudyAnalyticsDao {
     @Override
     public Map<LocalDate, Long> getDailyFocusDurations(String userUid, String range) {
         return focusSessionRepository.groupDailyFocusDurations(
-                userUid, FocusStatus.COMPLETED, getStartDate(range), LocalDateTime.now());
+                userUid, FocusStatus.COMPLETED, getStartDate(range), LocalDateTime.now()
+        ).stream().collect(Collectors.toMap(
+                row -> ((java.sql.Date) row[0]).toLocalDate(),
+                row -> (Long) row[1]
+        ));
     }
 
     @Override
     public Map<String, Long> getSubjectBreakdown(String userUid, String range) {
         return focusSessionRepository.groupByCourseName(
-                userUid, FocusStatus.COMPLETED, getStartDate(range), LocalDateTime.now());
+                userUid, FocusStatus.COMPLETED, getStartDate(range), LocalDateTime.now()
+        ).stream().collect(Collectors.toMap(
+                row -> (String) row[0],
+                row -> (Long) row[1]
+        ));
     }
 
     private LocalDateTime getStartDate(String range) {

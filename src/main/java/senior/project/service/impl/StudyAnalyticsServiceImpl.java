@@ -9,6 +9,7 @@ import senior.project.util.SecurityUtil;
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,8 +22,9 @@ public class StudyAnalyticsServiceImpl implements StudyAnalyticsService {
         String userUid = SecurityUtil.getAuthenticatedUid();
         int totalSessions = studyAnalyticsDao.countCompletedSessions(userUid, range);
         long totalDuration = studyAnalyticsDao.sumFocusDuration(userUid, range);
-        Map<LocalDate, Long> dailyFocus = studyAnalyticsDao.getDailyFocusDurations(userUid, range);
-        Map<String, Long> subjectBreakdown = studyAnalyticsDao.getSubjectBreakdown(userUid, range);
+
+        Map<LocalDate, Long> dailyFocus = removeNullKeys(studyAnalyticsDao.getDailyFocusDurations(userUid, range));
+        Map<String, Long> subjectBreakdown = removeNullKeys(studyAnalyticsDao.getSubjectBreakdown(userUid, range));
 
         return StudyAnalyticsDTO.builder()
                 .totalCompletedFocusSessions(totalSessions)
@@ -30,5 +32,12 @@ public class StudyAnalyticsServiceImpl implements StudyAnalyticsService {
                 .dailyFocusDurations(dailyFocus)
                 .subjectBreakdown(subjectBreakdown)
                 .build();
+    }
+
+    private <K, V> Map<K, V> removeNullKeys(Map<K, V> map) {
+        if (map == null) return Map.of();
+        return map.entrySet().stream()
+                .filter(e -> e.getKey() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

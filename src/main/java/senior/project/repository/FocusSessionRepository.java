@@ -8,6 +8,7 @@ import senior.project.enums.FocusStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,15 +27,17 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Stri
     @Query("SELECT DATE(f.focusStart), SUM(f.elapsedSeconds) FROM FocusSession f " +
             "WHERE f.user.uid = :userUid AND f.status = :status AND f.focusStart BETWEEN :start AND :end " +
             "GROUP BY DATE(f.focusStart)")
-    Map<LocalDate, Long> groupDailyFocusDurations(@Param("userUid") String userUid,
-                                                  @Param("status") FocusStatus status,
-                                                  @Param("start") LocalDateTime start,
-                                                  @Param("end") LocalDateTime end);
+    List<Object[]> groupDailyFocusDurations(@Param("userUid") String userUid,
+                                               @Param("status") FocusStatus status,
+                                               @Param("start") LocalDateTime start,
+                                               @Param("end") LocalDateTime end);
 
-    @Query("SELECT f.course.name, SUM(f.elapsedSeconds) FROM FocusSession f " +
-            "WHERE f.user.uid = :userUid AND f.status = :status AND f.focusStart BETWEEN :start AND :end " +
+    @Query("SELECT f.course.name, SUM(f.elapsedSeconds) " +
+            "FROM FocusSession f " +
+            "WHERE f.user.uid = :userUid AND f.status = :status " +
+            "AND f.focusStart BETWEEN :start AND :end " +
             "GROUP BY f.course.name")
-    Map<String, Long> groupByCourseName(@Param("userUid") String userUid,
+    List<Object[]> groupByCourseName(@Param("userUid") String userUid,
                                         @Param("status") FocusStatus status,
                                         @Param("start") LocalDateTime start,
                                         @Param("end") LocalDateTime end);

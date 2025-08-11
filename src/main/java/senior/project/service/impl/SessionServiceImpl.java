@@ -1,25 +1,16 @@
 package senior.project.service.impl;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import senior.project.dao.FocusSessionDao;
-import senior.project.dao.GroupMemberDao;
 import senior.project.dao.SessionDao;
 import senior.project.dao.UserDao;
 import senior.project.dto.plan.SessionDTO;
-import senior.project.entity.FocusSession;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
-import senior.project.enums.FocusStatus;
-import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.SessionService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
