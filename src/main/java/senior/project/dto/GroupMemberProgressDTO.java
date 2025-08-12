@@ -7,8 +7,9 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class GroupMemberProgressDTO {
-    private String userUid;
+    private MemberProfileDTO member;
     private int completedSessions;
     private long totalFocusSeconds;
-    private double totalScore;
+    private double percentageCompleted;
+    private long points;
 }

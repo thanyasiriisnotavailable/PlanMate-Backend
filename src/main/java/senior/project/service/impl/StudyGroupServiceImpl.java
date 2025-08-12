@@ -1,5 +1,6 @@
 package senior.project.service.impl;
 
+import com.google.firebase.auth.FirebaseAuth;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
     private final SessionDao sessionDao;
     private final FocusSessionDao focusSessionDao;
     private final UserDao userDao;
+    private final FirebaseAuth firebaseAuth;
 
     private static final String JOIN_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int JOIN_CODE_LENGTH = 6;
@@ -161,13 +163,15 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         List<GroupMember> members = groupMemberDao.findByGroupId(groupId);
         if (members.isEmpty()) return List.of();
 
+        int taskWeight = 10;
+        int hourWeight = 5;
+
         List<GroupMemberProgressDTO> progressList = new ArrayList<>();
 
         for (GroupMember member : members) {
             User user = member.getUser();
             String uid = user.getUid();
 
-            // --- Fetch Data ---
             int totalPlannedSessions = sessionDao.countTotalPlannedSessionsForUser(uid);
             int completedSessions = sessionDao.countCompletedSessionsForUser(uid);
 
@@ -176,21 +180,35 @@ public class StudyGroupServiceImpl implements StudyGroupService {
                     : ((double) completedSessions / totalPlannedSessions) * 100.0;
 
             long totalFocusSeconds = focusSessionDao.sumFocusSecondsByUser(uid);
-            double focusHours = totalFocusSeconds / 3600.0;
+            long focusHours = totalFocusSeconds / 3600;
 
-            // --- Score Formula (Weighted) ---
-            double score = (percentageCompleted * 0.6) + (focusHours * 0.4);
+            long points = (completedSessions * taskWeight) + (focusHours * hourWeight);
 
-            // --- Create DTO ---
-            GroupMemberProgressDTO dto = GroupMemberProgressDTO.builder()
-                    .userUid(uid)
+            // Fetch Firebase user info
+            MemberProfileDTO profileDTO = new MemberProfileDTO();
+            profileDTO.setMemberId(uid);
+
+            try {
+                var userRecord = firebaseAuth.getUser(uid);
+                profileDTO.setDisplayName(userRecord.getDisplayName());
+                profileDTO.setPhotoUrl(userRecord.getPhotoUrl());
+            } catch (Exception e) {
+                profileDTO.setDisplayName("Unknown");
+                profileDTO.setPhotoUrl(null);
+                // optionally log the exception here
+            }
+
+            progressList.add(GroupMemberProgressDTO.builder()
+                    .member(profileDTO)   // set full MemberProfileDTO here
                     .completedSessions(completedSessions)
                     .totalFocusSeconds(totalFocusSeconds)
-                    .totalScore(Math.round(score * 100.0) / 100.0)
-                    .build();
-
-            progressList.add(dto);
+                    .percentageCompleted(Math.round(percentageCompleted * 100.0) / 100.0)
+                    .points(points)
+                    .build());
         }
+
+        // sort by points descending
+        progressList.sort((a, b) -> Long.compare(b.getPoints(), a.getPoints()));
 
         return progressList;
     }
