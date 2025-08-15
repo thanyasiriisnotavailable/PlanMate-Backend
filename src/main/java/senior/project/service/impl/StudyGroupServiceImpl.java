@@ -68,7 +68,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
             return ResponseEntity.badRequest().body("Group name is required.");
         }
         if (name.length() > 50) {
-            return ResponseEntity.badRequest().body("Group name must be under 50 characters.");
+            return ResponseEntity.badRequest().body("Group name must be less than 50 characters.");
         }
 
         String joinCode = generateUniqueJoinCode();
