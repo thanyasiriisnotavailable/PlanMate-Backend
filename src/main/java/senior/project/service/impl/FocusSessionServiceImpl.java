@@ -2,6 +2,7 @@ package senior.project.service.impl;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
     private final GroupMemberDao groupMemberDao;
     private final UserDao userDao;
     private final FirebaseFocusService firebaseFocusService;
+    private final FirebaseAuth firebaseAuth;
     private final DTOMapper dtoMapper;
 
     @Override
@@ -86,14 +88,19 @@ public class FocusSessionServiceImpl implements FocusSessionService {
                 .map(member -> member.getGroup().getId())
                 .toList();
 
+
         // Send to Firebase
         try {
+            UserRecord userRecord = firebaseAuth.getUser(userUid);
+            String imageUrl = userRecord.getPhotoUrl();
+
             firebaseFocusService.writeFocusSession(
                     focusSession.getId(),
                     userUid,
                     session.getSessionId(),
                     durationSeconds,
                     displayName,
+                    imageUrl,
                     groupIds,
                     focusStart,
                     focusSession.getStatus()
@@ -135,6 +142,23 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         }
 
         focusSessionDao.save(focusSession);
+
+        // Cleanup Firebase
+        try {
+            List<Long> groupIds = groupMemberDao.findByUser(focusSession.getUser())
+                    .stream()
+                    .map(member -> member.getGroup().getId())
+                    .toList();
+
+            firebaseFocusService.clearFocusSession(
+                    focusSessionId,
+                    focusSession.getUser().getUid(),
+                    groupIds
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Firebase cleanup failed: " + ex.getMessage());
+        }
 
         return dtoMapper.toFocusSessionDto(focusSession);
     }
