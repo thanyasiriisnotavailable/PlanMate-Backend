@@ -35,11 +35,11 @@ public class FocusSessionController {
         return ResponseEntity.ok(focusSession);
     }
 
-    @PostMapping("/start")
-    public ResponseEntity<?> startFocusSession(@RequestBody StartFocusSessionDTO request) {
+    @PostMapping("/{sessionId}/start")
+    public ResponseEntity<?> startFocusSession(@PathVariable String sessionId) {
 
         try {
-            var response = focusSessionService.startFocusSession(request.getSessionId());
+            var response = focusSessionService.startFocusSession(sessionId);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -49,10 +49,34 @@ public class FocusSessionController {
         }
     }
 
-    @PostMapping("/end")
-    public ResponseEntity<?> endFocusSession(@RequestBody EndFocusSessionDTO request) {
+    @PostMapping("/{focusId}/pause")
+    public ResponseEntity<?> pauseFocusSession(@PathVariable String focusId) {
         try {
-            var response = focusSessionService.endFocusSession(request.getFocusSessionId());
+            var response = focusSessionService.pauseFocusSession(focusId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to pause session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{focusId}/resume")
+    public ResponseEntity<?> resumeFocusSession(@PathVariable String focusId) {
+        try {
+            var response = focusSessionService.resumeFocusSession(focusId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to resume session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{focusId}/end")
+    public ResponseEntity<?> endFocusSession(@PathVariable String focusId) {
+        try {
+            var response = focusSessionService.endFocusSession(focusId);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

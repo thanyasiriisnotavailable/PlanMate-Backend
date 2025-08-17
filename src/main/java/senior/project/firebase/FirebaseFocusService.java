@@ -85,6 +85,64 @@ public class FirebaseFocusService {
         }
     }
 
+    public void updateFocusSession(
+            String focusSessionId,
+            String userId,
+            FocusStatus status,
+            long elapsedSeconds
+    ) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference sessionRef = firebaseDatabase.getReference("focusSessions").child(focusSessionId);
+        DatabaseReference userRef = firebaseDatabase.getReference("activeUsers").child(userId);
+
+        // Prepare updates for the focus session data
+        Map<String, Object> sessionUpdates = new HashMap<>();
+        sessionUpdates.put("status", status.name());
+        sessionUpdates.put("elapsedSeconds", elapsedSeconds);
+
+        // If a session is paused, the end time is no longer relevant
+        if (status == FocusStatus.PAUSED) {
+            sessionUpdates.put("endsAt", null);
+        }
+
+        // Update the data in Firebase
+        sessionRef.updateChildrenAsync(sessionUpdates);
+
+        // Also update the user's status in the activeUsers node if necessary
+        Map<String, Object> userUpdates = new HashMap<>();
+        userUpdates.put("focusMode", status == FocusStatus.FOCUSING);
+        userRef.updateChildrenAsync(userUpdates);
+    }
+
+    public void resumeFocusSession(
+            String focusSessionId,
+            String userId,
+            FocusStatus status,
+            LocalDateTime focusStart,
+            long plannedDuration
+    ) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference sessionRef = firebaseDatabase.getReference("focusSessions").child(focusSessionId);
+        DatabaseReference userRef = firebaseDatabase.getReference("activeUsers").child(userId);
+
+        long startMillis = focusStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endMillis = startMillis + plannedDuration * 1000;
+
+        // Prepare updates for the focus session data
+        Map<String, Object> sessionUpdates = new HashMap<>();
+        sessionUpdates.put("status", status.name());
+        sessionUpdates.put("startedAt", startMillis);
+        sessionUpdates.put("endsAt", endMillis); // Update the new planned end time
+
+        // Update the data in Firebase
+        sessionRef.updateChildrenAsync(sessionUpdates);
+
+        // Also update the user's status in the activeUsers node
+        Map<String, Object> userUpdates = new HashMap<>();
+        userUpdates.put("focusMode", true);
+        userRef.updateChildrenAsync(userUpdates);
+    }
+
     public void clearFocusSession(String focusSessionId, String userId, List<Long> groupIds) {
         FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
 

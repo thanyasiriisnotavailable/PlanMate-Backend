@@ -43,8 +43,17 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
     @Override
     public FocusSessionDTO getActiveFocusSessionForUser(String userUid) {
-        FocusSession focusSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.FOCUSING);
-        return dtoMapper.toFocusSessionDto(focusSession);
+        FocusSession focusingSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.FOCUSING);
+        if (focusingSession != null) {
+            return dtoMapper.toFocusSessionDto(focusingSession);
+        }
+
+        FocusSession pausedSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.PAUSED);
+        if (pausedSession != null) {
+            return dtoMapper.toFocusSessionDto(pausedSession);
+        }
+
+        return null;
     }
 
     @Override
@@ -66,6 +75,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
                 .course(session.getCourse())
                 .topic(session.getTopic())
                 .focusStart(focusStart)
+                .elapsedSeconds(0L)
                 .status(FocusStatus.FOCUSING)
                 .sessionType(session.getType())
                 .plannedDuration(session.getDuration())
@@ -119,6 +129,72 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         );
     }
 
+    @Transactional
+    @Override
+    public FocusSessionDTO pauseFocusSession(String focusSessionId) {
+        FocusSession focusSession = focusSessionDao.findById(focusSessionId);
+
+        // Check if the session is currently focusing
+        if (focusSession == null || focusSession.getStatus() != FocusStatus.FOCUSING) {
+            throw new IllegalStateException("Session is not active or not found.");
+        }
+
+        // Calculate elapsed time from the last start/resume
+        long secondsFromLastAction = java.time.Duration.between(focusSession.getFocusStart(), LocalDateTime.now()).getSeconds();
+
+        // Update elapsedSeconds and status
+        focusSession.setElapsedSeconds(focusSession.getElapsedSeconds() + secondsFromLastAction);
+        focusSession.setStatus(FocusStatus.PAUSED);
+
+        focusSessionDao.save(focusSession);
+
+        // Update Firebase to reflect the paused state
+        try {
+            firebaseFocusService.updateFocusSession(
+                    focusSessionId,
+                    focusSession.getUser().getUid(),
+                    focusSession.getStatus(),
+                    focusSession.getElapsedSeconds()
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return dtoMapper.toFocusSessionDto(focusSession);
+    }
+
+    @Transactional
+    @Override
+    public FocusSessionDTO resumeFocusSession(String focusSessionId) {
+        FocusSession focusSession = focusSessionDao.findById(focusSessionId);
+
+        // Check if the session is currently paused
+        if (focusSession == null || focusSession.getStatus() != FocusStatus.PAUSED) {
+            throw new IllegalStateException("Session is not in a pausable state.");
+        }
+
+        // Reset focus start time to the current time
+        focusSession.setFocusStart(LocalDateTime.now());
+        focusSession.setStatus(FocusStatus.FOCUSING);
+
+        focusSessionDao.save(focusSession);
+
+        // Update Firebase to reflect the resumed state
+        try {
+            firebaseFocusService.resumeFocusSession(
+                    focusSessionId,
+                    focusSession.getUser().getUid(),
+                    focusSession.getStatus(),
+                    focusSession.getFocusStart(),
+                    focusSession.getPlannedDuration()
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return dtoMapper.toFocusSessionDto(focusSession);
+    }
+
     @Override
     @Transactional
     public FocusSessionDTO endFocusSession(String focusSessionId) {
@@ -127,12 +203,17 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         if (focusSession.getFocusEnd() != null || focusSession.getStatus() == FocusStatus.COMPLETED) {
             throw new IllegalStateException("This session has already been completed.");
         }
+        // Check if the session is active (FOCUSING) before ending
+        if (focusSession.getStatus() != FocusStatus.FOCUSING) {
+            throw new IllegalStateException("This session is not currently active.");
+        }
 
-        LocalDateTime now = LocalDateTime.now();
-        focusSession.setFocusEnd(now);
-        focusSession.setElapsedSeconds(
-                java.time.Duration.between(focusSession.getFocusStart(), now).getSeconds()
-        );
+        // Calculate final elapsed seconds based on the last active period
+        long secondsFromLastAction = java.time.Duration.between(focusSession.getFocusStart(), LocalDateTime.now()).getSeconds();
+        focusSession.setElapsedSeconds(focusSession.getElapsedSeconds() + secondsFromLastAction);
+
+        // Set end time and status
+        focusSession.setFocusEnd(LocalDateTime.now());
         focusSession.setStatus(FocusStatus.COMPLETED);
 
         Session relatedSession = focusSession.getSession();
