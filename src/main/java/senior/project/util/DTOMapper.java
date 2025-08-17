@@ -239,11 +239,29 @@ public interface DTOMapper {
                 .build();
     }
 
-    @Mapping(target = "session", source = "session") // delegate to toSessionDto
+    @Mapping(target = "session", source = "session")
     @Mapping(target = "courseId", source = "course.courseId")
     @Mapping(target = "topicId", source = "topic.id")
     @Mapping(target = "assignmentId", source = "assignment.id")
+    @Mapping(target = "courseName", source = "course.name")
+    @Mapping(target = "topicName", source = "topic.name")
+    @Mapping(target = "assignmentName", source = "assignment.name")
     FocusSessionDTO toFocusSessionDto(FocusSession focusSession);
+
+    @AfterMapping
+    default void fillDisplayName(FocusSession focusSession, @MappingTarget FocusSessionDTO dto) {
+        String display = null;
+
+        if (focusSession.getTopic() != null && focusSession.getTopic().getName() != null) {
+            display = focusSession.getTopic().getName();
+        } else if (focusSession.getAssignment() != null && focusSession.getAssignment().getName() != null) {
+            display = focusSession.getAssignment().getName();
+        } else {
+            display = "Untitled";
+        }
+
+        dto.setDisplayName(display);
+    }
 
     List<FocusSessionDTO> toFocusSessionDtos(List<FocusSession> focusSessions);
 }
