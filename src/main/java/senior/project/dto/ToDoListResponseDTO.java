@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import senior.project.dto.plan.SessionDTO;
 
 import java.util.List;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor

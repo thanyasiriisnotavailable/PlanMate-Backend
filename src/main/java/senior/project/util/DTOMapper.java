@@ -241,11 +241,11 @@ public interface DTOMapper {
 
     @Mapping(target = "session", source = "session")
     @Mapping(target = "courseId", source = "course.courseId")
-    @Mapping(target = "topicId", source = "topic.id")
-    @Mapping(target = "assignmentId", source = "assignment.id")
-    @Mapping(target = "courseName", source = "course.name")
-    @Mapping(target = "topicName", source = "topic.name")
-    @Mapping(target = "assignmentName", source = "assignment.name")
+    @Mapping(target = "topicId", source = "session.topic.id")
+    @Mapping(target = "assignmentId", source = "session.assignment.id")
+    @Mapping(target = "courseName", source = "session.course.name")
+    @Mapping(target = "topicName", source = "session.topic.name")
+    @Mapping(target = "assignmentName", source = "session.assignment.name")
     FocusSessionDTO toFocusSessionDto(FocusSession focusSession);
 
     @AfterMapping
@@ -256,6 +256,10 @@ public interface DTOMapper {
             display = focusSession.getTopic().getName();
         } else if (focusSession.getAssignment() != null && focusSession.getAssignment().getName() != null) {
             display = focusSession.getAssignment().getName();
+        } else if (focusSession.getSession() != null
+                && focusSession.getSession().getAssignment() != null
+                && focusSession.getSession().getAssignment().getName() != null) {
+            display = focusSession.getSession().getAssignment().getName();
         } else {
             display = "Untitled";
         }

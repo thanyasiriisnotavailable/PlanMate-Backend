@@ -1,7 +1,6 @@
 package senior.project.firebase;
 
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.*;
 import org.springframework.stereotype.Service;
 import senior.project.enums.FocusStatus;
 
@@ -10,6 +9,10 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class FirebaseFocusService {
@@ -155,5 +158,160 @@ public class FirebaseFocusService {
         }
 
         firebaseDatabase.getReference().updateChildrenAsync(removals);
+    }
+
+    public void sendInvitation(
+            String targetUserId,
+            String invitationId,
+            String fromUserId,
+            String fromName,
+            String roomId
+    ) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference inviteRef = firebaseDatabase
+                .getReference("invitations")
+                .child(targetUserId)
+                .child(invitationId);
+
+        Map<String, Object> inviteData = new HashMap<>();
+        inviteData.put("from", fromUserId);
+        inviteData.put("fromName", fromName);
+        inviteData.put("roomId", roomId);
+        inviteData.put("timestamp", System.currentTimeMillis());
+
+        inviteRef.setValueAsync(inviteData);
+
+        // Optional: auto-expire the invite after some time
+        inviteRef.onDisconnect().removeValue((error, ref) -> {
+            if (error != null) {
+                System.err.println("Failed to set onDisconnect for invitation: " + error.getMessage());
+            }
+        });
+    }
+
+    public void joinSharedFocusRoom(
+            String focusSessionId,
+            String userId,
+            String roomId,
+            long remainingDuration,
+            String userName,
+            String userImage
+    ) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference roomRef = firebaseDatabase.getReference("sharedRooms").child(roomId);
+        DatabaseReference userRoomRef = roomRef.child(userId);
+        DatabaseReference userActiveRef = firebaseDatabase.getReference("activeUsers").child(userId);
+
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("focusSessionId", focusSessionId);
+        userData.put("name", userName);
+        userData.put("image", userImage);
+        userData.put("status", FocusStatus.FOCUSING.name());
+        userData.put("startedAt", System.currentTimeMillis());
+        userData.put("endsAt", System.currentTimeMillis() + remainingDuration * 1000);
+
+        userRoomRef.setValueAsync(userData);
+
+        // Update the user's status in the activeUsers node
+        userActiveRef.child("inSharedRoom").setValueAsync(true);
+        userActiveRef.child("sharedRoomId").setValueAsync(roomId);
+
+        // Set onDisconnect for shared room entry
+        userRoomRef.onDisconnect().removeValue((error, ref) -> {
+            if (error != null) {
+                System.err.println("Failed to set onDisconnect for shared room: " + error.getMessage());
+            }
+        });
+    }
+
+    public long countActiveUsersInRoom(String roomId) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference roomRef = firebaseDatabase.getReference("sharedRooms").child(roomId);
+
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        roomRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    future.complete(dataSnapshot.getChildrenCount());
+                } else {
+                    future.complete(0L);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+
+        try {
+            return future.get(5, TimeUnit.SECONDS); // Wait for up to 5 seconds
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+            return 0L;
+        }
+    }
+
+    public String getSharedRoomIdForUser(String userId) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference userActiveRef = firebaseDatabase.getReference("activeUsers").child(userId);
+
+        CompletableFuture<String> future = new CompletableFuture<>();
+        userActiveRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.child("inSharedRoom").exists() && dataSnapshot.child("inSharedRoom").getValue(Boolean.class)) {
+                    future.complete(dataSnapshot.child("sharedRoomId").getValue(String.class));
+                } else {
+                    future.complete(null);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                future.completeExceptionally(databaseError.toException());
+            }
+        });
+
+        try {
+            return future.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public boolean removeInvitation(String targetUserId, String invitationId) {
+        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
+        DatabaseReference inviteRef = firebaseDatabase
+                .getReference("invitations")
+                .child(targetUserId)
+                .child(invitationId);
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        inviteRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    inviteRef.removeValueAsync();
+                    future.complete(true);
+                } else {
+                    future.complete(false);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                future.completeExceptionally(error.toException());
+            }
+        });
+
+        try {
+            return future.get(3, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

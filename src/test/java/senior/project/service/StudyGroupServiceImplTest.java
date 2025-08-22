@@ -196,7 +196,6 @@ class StudyGroupServiceImplTest {
         @Test
         @DisplayName("UTC-14-TC-01: Join with valid code should succeed")
         void joinGroup_validCode_shouldSucceed() {
-            JoinGroupRequestDTO dto = new JoinGroupRequestDTO(VALID_JOIN_CODE);
 
             try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
                 mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
@@ -204,7 +203,7 @@ class StudyGroupServiceImplTest {
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
                 when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(false);
 
-                ResponseEntity<?> response = studyGroupService.joinGroup(dto);
+                    ResponseEntity<?> response = studyGroupService.joinGroup(VALID_JOIN_CODE);
 
                 assertEquals(200, response.getStatusCodeValue());
                 assertTrue(response.getBody().toString().contains("Joined group"));
@@ -214,10 +213,9 @@ class StudyGroupServiceImplTest {
         @Test
         @DisplayName("UTC-14-TC-02: Join code not found")
         void joinGroup_codeNotFound_shouldFail() {
-            JoinGroupRequestDTO dto = new JoinGroupRequestDTO("ZZZZZZ");
             when(studyGroupDao.findByJoinCode("ZZZZZZ")).thenReturn(Optional.empty());
 
-            ResponseEntity<?> response = studyGroupService.joinGroup(dto);
+            ResponseEntity<?> response = studyGroupService.joinGroup("ZZZZZZ");
 
             assertEquals(400, response.getStatusCodeValue());
             assertTrue(response.getBody().toString().contains("Invalid join code"));
@@ -226,15 +224,13 @@ class StudyGroupServiceImplTest {
         @Test
         @DisplayName("UTC-14-TC-03: User already member")
         void joinGroup_userAlreadyMember_shouldFail() {
-            JoinGroupRequestDTO dto = new JoinGroupRequestDTO(VALID_JOIN_CODE);
-
             try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
                 mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
                 when(studyGroupDao.findByJoinCode(VALID_JOIN_CODE)).thenReturn(Optional.of(mockGroup));
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
                 when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(true);
 
-                ResponseEntity<?> response = studyGroupService.joinGroup(dto);
+                ResponseEntity<?> response = studyGroupService.joinGroup(VALID_JOIN_CODE);
 
                 assertEquals(400, response.getStatusCodeValue());
                 assertTrue(response.getBody().toString().contains("already a member"));
@@ -244,13 +240,11 @@ class StudyGroupServiceImplTest {
         @Test
         @DisplayName("UTC-14-TC-04: Exception during join should return 500")
         void joinGroup_exception_shouldReturn500() {
-            JoinGroupRequestDTO dto = new JoinGroupRequestDTO(VALID_JOIN_CODE);
-
             try (MockedStatic<SecurityUtil> mockedStatic = Mockito.mockStatic(SecurityUtil.class)) {
                 mockedStatic.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
                 when(studyGroupDao.findByJoinCode(VALID_JOIN_CODE)).thenThrow(new RuntimeException("DB failure"));
 
-                ResponseEntity<?> response = studyGroupService.joinGroup(dto);
+                ResponseEntity<?> response = studyGroupService.joinGroup(VALID_JOIN_CODE);
 
                 assertEquals(500, response.getStatusCodeValue());
                 assertTrue(response.getBody().toString().contains("Network issue"));

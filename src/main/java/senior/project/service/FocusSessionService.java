@@ -19,4 +19,11 @@ public interface FocusSessionService {
     FocusSessionDTO resumeFocusSession(String focusSessionId);
 
     FocusSessionDTO endFocusSession(String focusSessionId);
+
+    @Transactional
+    Map<String, Object> joinSharedFocusRoom(String roomId);
+
+    Object inviteUserToSharedRoom(String targetUserId);
+
+    Object declineInvitation(String invitationId);
 }

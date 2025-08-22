@@ -100,9 +100,7 @@ public class StudyGroupServiceImpl implements StudyGroupService {
     }
 
     @Override
-    public ResponseEntity<?> joinGroup(JoinGroupRequestDTO dto) {
-        String joinCode = dto.getJoinCode();
-
+    public ResponseEntity<?> joinGroup(String joinCode) {
         if (joinCode == null || !joinCode.matches("[A-Z0-9]{6}")) {
             return ResponseEntity.badRequest().body("Invalid join code");
         }

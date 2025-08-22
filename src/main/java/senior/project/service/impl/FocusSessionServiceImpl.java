@@ -23,6 +23,7 @@ import senior.project.util.SecurityUtil;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -242,5 +243,113 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         }
 
         return dtoMapper.toFocusSessionDto(focusSession);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> inviteUserToSharedRoom(String targetUserId) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+
+        // Get A’s active session
+        FocusSession focusSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.FOCUSING);
+        if (focusSession == null) {
+            throw new IllegalArgumentException("You must have an active focus session to invite someone.");
+        }
+
+        // Generate roomId (based on inviter’s UID)
+        String roomId = "room-" + userUid;
+
+        // Get inviter info
+        String displayName = focusSession.getUser().getEmail();
+        try {
+            UserRecord userRecord = FirebaseAuth.getInstance().getUser(userUid);
+            if (userRecord.getDisplayName() != null && !userRecord.getDisplayName().isBlank()) {
+                displayName = userRecord.getDisplayName();
+            }
+        } catch (FirebaseAuthException e) {
+            e.printStackTrace();
+        }
+
+        // Push invitation to Firebase
+        String invitationId = UUID.randomUUID().toString();
+        firebaseFocusService.sendInvitation(targetUserId, invitationId, userUid, displayName, roomId);
+
+        return Map.of(
+                "message", "Invitation sent successfully",
+                "invitationId", invitationId,
+                "roomId", roomId
+        );
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> joinSharedFocusRoom(String roomId) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        FocusSession focusSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.FOCUSING);
+
+        // Validate session and user
+        if (focusSession == null) {
+            throw new IllegalArgumentException("You must have an active focus session to join a shared room.");
+        }
+
+        // Check if the user is already in a shared room
+        String existingRoomId = firebaseFocusService.getSharedRoomIdForUser(userUid);
+        if (existingRoomId != null) {
+            throw new IllegalStateException("You are already in a shared room with ID: " + existingRoomId);
+        }
+
+        // Check the number of active users in the room
+        long activeMembersCount = firebaseFocusService.countActiveUsersInRoom(roomId);
+        if (activeMembersCount >= 5) {
+            throw new IllegalStateException("The shared focus room has reached the maximum of 5 members.");
+        }
+
+        // Get display name and image for Firebase
+        String displayName = focusSession.getUser().getEmail();
+        String imageUrl = null;
+        try {
+            UserRecord userRecord = FirebaseAuth.getInstance().getUser(userUid);
+            if (userRecord.getDisplayName() != null && !userRecord.getDisplayName().isBlank()) {
+                displayName = userRecord.getDisplayName();
+            }
+            imageUrl = userRecord.getPhotoUrl();
+        } catch (FirebaseAuthException error) {
+            error.printStackTrace();
+        }
+
+        // Push to Firebase for the shared room
+        try {
+            firebaseFocusService.joinSharedFocusRoom(
+                    focusSession.getId(),
+                    userUid,
+                    roomId,
+                    focusSession.getPlannedDuration() - focusSession.getElapsedSeconds(), // Remaining time
+                    displayName,
+                    imageUrl
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Firebase sync failed for joining shared room: " + ex.getMessage());
+            throw new RuntimeException("Failed to join shared session on Firebase.");
+        }
+
+        return Map.of("message", "Successfully joined shared focus room", "roomId", roomId);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> declineInvitation(String invitationId) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+
+        boolean success = firebaseFocusService.removeInvitation(userUid, invitationId);
+
+        if (!success) {
+            throw new IllegalArgumentException("Invitation not found or already handled.");
+        }
+
+        return Map.of(
+                "message", "Invitation declined successfully",
+                "invitationId", invitationId
+        );
     }
 }

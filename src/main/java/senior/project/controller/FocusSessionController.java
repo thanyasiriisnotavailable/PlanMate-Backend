@@ -3,10 +3,7 @@ package senior.project.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import senior.project.dto.EndFocusSessionDTO;
 import senior.project.dto.FocusSessionDTO;
-import senior.project.dto.StartFocusSessionDTO;
-import senior.project.entity.FocusSession;
 import senior.project.service.FocusSessionService;
 import senior.project.util.SecurityUtil;
 
@@ -82,6 +79,45 @@ public class FocusSessionController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Failed to end session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/invite/{targetUserId}")
+    public ResponseEntity<?> inviteToSharedRoom(@PathVariable String targetUserId) {
+        try {
+            var response = focusSessionService.inviteUserToSharedRoom(targetUserId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to send invitation. Please try again later.");
+        }
+    }
+
+    @PostMapping("/join-room/{roomId}")
+    public ResponseEntity<?> joinSharedRoom(@PathVariable String roomId) {
+        try {
+            var response = focusSessionService.joinSharedFocusRoom(roomId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to join shared room. Please try again later.");
+        }
+    }
+
+    @PostMapping("/invite/{invitationId}/decline")
+    public ResponseEntity<?> declineInvitation(@PathVariable String invitationId) {
+        try {
+            var response = focusSessionService.declineInvitation(invitationId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to decline invitation. Please try again later.");
         }
     }
 }

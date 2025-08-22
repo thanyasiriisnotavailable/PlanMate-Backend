@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.GroupMemberProgressDTO;
 import senior.project.dto.GroupRequestDTO;
-import senior.project.dto.JoinGroupRequestDTO;
 import senior.project.dto.StudyGroupResponseDTO;
 import senior.project.service.StudyGroupService;
 
@@ -28,9 +27,9 @@ public class StudyGroupController {
         return studyGroupService.createGroup(dto);
     }
 
-    @PostMapping("/join")
-    public ResponseEntity<?> joinGroup(@RequestBody JoinGroupRequestDTO dto) {
-        return studyGroupService.joinGroup(dto);
+    @PostMapping("/join/{joinCode}")
+    public ResponseEntity<?> joinGroup(@PathVariable String joinCode) {
+        return studyGroupService.joinGroup(joinCode);
     }
 
     @GetMapping("/{groupId}/progress")
