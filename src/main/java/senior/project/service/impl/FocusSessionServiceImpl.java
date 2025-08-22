@@ -84,15 +84,13 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         focusSessionDao.save(focusSession);
 
-        // Fetch display name
-        String displayName = user.getEmail(); // fallback
-        try {
-            String firebaseName = FirebaseAuth.getInstance().getUser(userUid).getDisplayName();
-            if (firebaseName != null && !firebaseName.isBlank()) {
-                displayName = firebaseName;
-            }
-        } catch (FirebaseAuthException ignored) {
-        }
+        // Fetch display name and image
+        UserRecord rec = null;
+        try { rec = firebaseAuth.getUser(userUid); } catch (FirebaseAuthException ignore) {}
+        String displayName = (rec != null && rec.getDisplayName() != null && !rec.getDisplayName().isBlank())
+                ? rec.getDisplayName() : user.getEmail();
+        String imageUrl = (rec != null) ? rec.getPhotoUrl() : null;
+
 
         // Collect group IDs
         List<Long> groupIds = groupMemberDao.findByUser(user).stream()
@@ -102,9 +100,6 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Send to Firebase
         try {
-            UserRecord userRecord = firebaseAuth.getUser(userUid);
-            String imageUrl = userRecord.getPhotoUrl();
-
             firebaseFocusService.writeFocusSession(
                     focusSession.getId(),
                     userUid,

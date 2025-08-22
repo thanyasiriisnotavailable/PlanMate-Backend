@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import senior.project.dao.*;
 import senior.project.dto.GroupMemberProgressDTO;
 import senior.project.dto.GroupRequestDTO;
-import senior.project.dto.JoinGroupRequestDTO;
 import senior.project.entity.*;
 import senior.project.service.impl.StudyGroupServiceImpl;
 import senior.project.util.SecurityUtil;

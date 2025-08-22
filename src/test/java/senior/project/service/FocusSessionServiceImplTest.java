@@ -74,7 +74,7 @@ public class FocusSessionServiceImplTest {
                 assertEquals("S001", result.get("sessionId"));
                 assertEquals(3600L, result.get("duration"));
                 verify(focusSessionDao, times(1)).save(any(FocusSession.class));
-                verify(firebaseFocusService, times(1)).writeFocusSession(any(), any(), any(), anyLong(), any(), anyList(), any(), any());
+                verify(firebaseFocusService, times(1)).writeFocusSession(any(), any(), any(), anyLong(), any(), any(), any(), any(), any());
             }
         }
 
@@ -111,7 +111,7 @@ public class FocusSessionServiceImplTest {
                 focusSessionService.startFocusSession("S001");
 
                 // Assert: Verify that the fallback display name (email) was used
-                verify(firebaseFocusService).writeFocusSession(any(), any(), any(), anyLong(), displayNameCaptor.capture(), anyList(), any(), any());
+                verify(firebaseFocusService).writeFocusSession(any(), any(), any(), anyLong(), displayNameCaptor.capture(), any(), any(), any(), any());
                 assertEquals(mockUser.getEmail(), displayNameCaptor.getValue());
             } catch (FirebaseAuthException e) {
                 throw new RuntimeException(e);
@@ -146,7 +146,7 @@ public class FocusSessionServiceImplTest {
 
                 // Simulate Firebase write failure
                 doThrow(new RuntimeException("Firebase write fail"))
-                        .when(firebaseFocusService).writeFocusSession(any(), any(), any(), anyLong(), any(), anyList(), any(), any());
+                        .when(firebaseFocusService).writeFocusSession(any(), any(), any(), anyLong(), any(), any(), any(), any(), any());
 
                 // Act & Assert: The method should complete without throwing an exception
                 Map<String, Object> result = assertDoesNotThrow(
