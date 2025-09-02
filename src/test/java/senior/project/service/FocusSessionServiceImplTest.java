@@ -22,6 +22,7 @@ import senior.project.util.SecurityUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +30,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 public class FocusSessionServiceImplTest {
-    // Add missing DAO mocks
     @Mock private SessionDao sessionDao;
     @Mock private UserDao userDao;
 
@@ -55,6 +55,15 @@ public class FocusSessionServiceImplTest {
     @Nested
     @DisplayName("Tests for startFocusSession(String sessionId)")
     class StartFocusSessionTests {
+        // Helper method to set up the mocking for successful `save`
+        private void setupMockSave() {
+            when(focusSessionDao.save(any(FocusSession.class))).thenAnswer(invocation -> {
+                FocusSession savedSession = invocation.getArgument(0);
+                savedSession.setId(UUID.randomUUID().toString());
+                return savedSession;
+            });
+        }
+
         @Test
         @DisplayName("UTC-17-TC-01: Start session with valid session ID")
         void startSession_validId_shouldSucceed() {
@@ -65,6 +74,8 @@ public class FocusSessionServiceImplTest {
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
                 when(groupMemberDao.findByUser(mockUser)).thenReturn(Collections.emptyList());
 
+                setupMockSave();
+
                 // Act
                 Map<String, Object> result = focusSessionService.startFocusSession("S001");
 
@@ -73,6 +84,7 @@ public class FocusSessionServiceImplTest {
                 assertEquals("Focus session started", result.get("message"));
                 assertEquals("S001", result.get("sessionId"));
                 assertEquals(3600L, result.get("duration"));
+                assertNotNull(result.get("focusSessionId"));
                 verify(focusSessionDao, times(1)).save(any(FocusSession.class));
                 verify(firebaseFocusService, times(1)).writeFocusSession(any(), any(), any(), anyLong(), any(), any(), any(), any(), any());
             }
@@ -104,6 +116,8 @@ public class FocusSessionServiceImplTest {
 
                 // Simulate FirebaseAuth throwing an exception
                 when(firebaseAuth.getUser(MOCK_USER_UID)).thenThrow(mock(FirebaseAuthException.class));
+
+                setupMockSave();
 
                 ArgumentCaptor<String> displayNameCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -148,6 +162,8 @@ public class FocusSessionServiceImplTest {
                 doThrow(new RuntimeException("Firebase write fail"))
                         .when(firebaseFocusService).writeFocusSession(any(), any(), any(), anyLong(), any(), any(), any(), any(), any());
 
+                setupMockSave();
+
                 // Act & Assert: The method should complete without throwing an exception
                 Map<String, Object> result = assertDoesNotThrow(
                         () -> focusSessionService.startFocusSession("S001")
@@ -156,6 +172,7 @@ public class FocusSessionServiceImplTest {
                 // Verify the method still returns the success map
                 assertNotNull(result);
                 assertEquals("Focus session started", result.get("message"));
+                assertNotNull(result.get("focusSessionId"));
             }
         }
 
@@ -166,8 +183,10 @@ public class FocusSessionServiceImplTest {
             Session zeroDurationSession = Session.builder().sessionId("S002").duration(0L).build();
             try (MockedStatic<SecurityUtil> mocked = mockStatic(SecurityUtil.class)) {
                 mocked.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_USER_UID);
-                when(sessionDao.findById("S002")).thenReturn(mockSession);
+                when(sessionDao.findById("S002")).thenReturn(zeroDurationSession); // Correctly mock the zero duration session
                 when(userDao.findByUid(MOCK_USER_UID)).thenReturn(mockUser);
+
+                setupMockSave();
 
                 // Act
                 Map<String, Object> result = focusSessionService.startFocusSession("S002");
@@ -175,6 +194,7 @@ public class FocusSessionServiceImplTest {
                 // Assert
                 assertNotNull(result);
                 assertEquals(0L, result.get("duration"));
+                assertNotNull(result.get("focusSessionId"));
             }
         }
     }

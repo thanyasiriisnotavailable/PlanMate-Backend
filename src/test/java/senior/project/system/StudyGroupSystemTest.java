@@ -1,6 +1,7 @@
 package senior.project.system;
 
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -19,8 +20,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.google.firebase.auth.FirebaseAuth;
+import senior.project.dao.GroupMemberDao;
 import senior.project.dao.StudyGroupDao;
+import senior.project.dao.UserDao;
+import senior.project.entity.StudyGroup;
+import senior.project.entity.User;
 import senior.project.util.SecurityUtil;
+
+import java.util.Optional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +44,12 @@ public class StudyGroupSystemTest {
 
     @MockitoBean
     private StudyGroupDao studyGroupDao;
+
+    @MockitoBean
+    private GroupMemberDao groupMemberDao;
+
+    @MockitoBean
+    private UserDao userDao;
 
     // ========== STC-11-TC-01 ==========
     @Test
@@ -132,6 +145,87 @@ public class StudyGroupSystemTest {
                             .content(payload))
                     .andExpect(status().isInternalServerError())
                     .andExpect(content().string(containsString("Group creation failed")));
+        }
+    }
+
+    // ========== STC-12-TC-01 ==========
+    @Test
+    void STC_12_TC_01_joinGroup_valid_shouldPass() throws Exception {
+        String joinCode = "ABC123";
+        StudyGroup mockGroup = StudyGroup.builder().id(1L).name("Math Final").joinCode(joinCode).build();
+        User mockUser = User.builder().uid(TEST_UID).build();
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.of(mockGroup));
+            when(userDao.findByUid(TEST_UID)).thenReturn(mockUser);
+            when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(false);
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Joined group: Math Final")));
+        }
+    }
+
+    // ========== STC-12-TC-02 ==========
+    @Test
+    void STC_12_TC_02_joinGroup_codeNotFound_shouldReturn400() throws Exception {
+        String joinCode = "ZZZZZZ";
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.empty());
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("Invalid join code")));
+        }
+    }
+
+    // ========== STC-12-TC-03 ==========
+    @Test
+    void STC_12_TC_03_joinGroup_alreadyMember_shouldReturn400() throws Exception {
+        String joinCode = "ABC123";
+        StudyGroup mockGroup = StudyGroup.builder().id(1L).name("Math Final").joinCode(joinCode).build();
+        User mockUser = User.builder().uid(TEST_UID).build();
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.of(mockGroup));
+            when(userDao.findByUid(TEST_UID)).thenReturn(mockUser);
+            when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(true);
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("already a member")));
+        }
+    }
+
+    // ========== STC-12-TC-04 ==========
+    @Test
+    void STC_12_TC_04_joinGroup_exception_shouldReturn500() throws Exception {
+        String joinCode = "ABC123";
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode))
+                    .thenThrow(new RuntimeException("DB error"));
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string(containsString("Network issue")));
         }
     }
 }

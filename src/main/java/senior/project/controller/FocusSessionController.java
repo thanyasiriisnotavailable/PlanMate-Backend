@@ -1,17 +1,22 @@
 package senior.project.controller;
 
+import com.google.firebase.internal.FirebaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.FocusSessionDTO;
+import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.FocusSessionService;
 import senior.project.util.SecurityUtil;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/focus")
 @RequiredArgsConstructor
 public class FocusSessionController {
     private final FocusSessionService focusSessionService;
+    private final FirebaseFocusService firebaseFocusService;
 
     @GetMapping("/{id}")
     public ResponseEntity<FocusSessionDTO> getFocusSession(@PathVariable String id) {
@@ -119,5 +124,12 @@ public class FocusSessionController {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Unable to decline invitation. Please try again later.");
         }
+    }
+
+    @PostMapping("/leave-room/{roomId}")
+    public ResponseEntity<?> leaveSharedRoom(@PathVariable String roomId) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        firebaseFocusService.leaveSharedFocusRoom(userUid, roomId);
+        return ResponseEntity.ok(Map.of("message", "Left shared room", "roomId", roomId));
     }
 }

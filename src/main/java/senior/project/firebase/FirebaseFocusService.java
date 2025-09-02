@@ -314,4 +314,19 @@ public class FirebaseFocusService {
             return false;
         }
     }
+
+    public void leaveSharedFocusRoom(String userId, String roomId) {
+        FirebaseDatabase db = FirebaseDatabase.getInstance();
+
+        // Remove the user from the shared room
+        DatabaseReference roomUserRef = db.getReference("sharedRooms")
+                .child(roomId)
+                .child(userId);
+        roomUserRef.removeValueAsync();
+
+        // Reset user's active status
+        DatabaseReference userActiveRef = db.getReference("activeUsers").child(userId);
+        userActiveRef.child("inSharedRoom").setValueAsync(false);
+        userActiveRef.child("sharedRoomId").removeValueAsync();
+    }
 }
