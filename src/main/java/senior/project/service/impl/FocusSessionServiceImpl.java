@@ -5,6 +5,8 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import senior.project.dao.FocusSessionDao;
 import senior.project.dao.GroupMemberDao;
@@ -19,6 +21,7 @@ import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.FocusSessionService;
 import senior.project.util.DTOMapper;
 import senior.project.util.SecurityUtil;
+import java.util.Objects;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +31,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class FocusSessionServiceImpl implements FocusSessionService {
+    private static final Logger log = LoggerFactory.getLogger(FocusSessionServiceImpl.class);
     private final FocusSessionDao focusSessionDao;
     private final SessionDao sessionDao;
     private final GroupMemberDao groupMemberDao;
@@ -94,7 +98,16 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Collect group IDs
         List<Long> groupIds = groupMemberDao.findByUser(user).stream()
-                .map(member -> member.getGroup().getId())
+                .map(member -> {
+                    if (member.getGroup() == null) {
+                        log.warn("User {} has a GroupMember with NULL group", user.getUid());
+                        return null;
+                    }
+                    Long gid = member.getGroup().getId();
+                    log.info("User {} belongs to group {}", user.getUid(), gid);
+                    return gid;
+                })
+                .filter(Objects::nonNull)
                 .toList();
 
 
@@ -153,6 +166,9 @@ public class FocusSessionServiceImpl implements FocusSessionService {
                     focusSession.getElapsedSeconds()
             );
         } catch (Exception ex) {
+            log.warn("Firebase sync failed for focusSessionId={} userUid={}: {}", focusSession.getId(), focusSession.getUser().getUid(), ex.getMessage());
+            // optionally log full exception at debug level:
+            log.debug("Firebase sync exception", ex);
             ex.printStackTrace();
         }
 
@@ -256,14 +272,26 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Get inviter info
         String displayName = focusSession.getUser().getEmail();
+        String imageUrl = null;
         try {
             UserRecord userRecord = FirebaseAuth.getInstance().getUser(userUid);
             if (userRecord.getDisplayName() != null && !userRecord.getDisplayName().isBlank()) {
                 displayName = userRecord.getDisplayName();
             }
-        } catch (FirebaseAuthException e) {
-            e.printStackTrace();
+            imageUrl = userRecord.getPhotoUrl();
+        } catch (FirebaseAuthException error) {
+            error.printStackTrace();
         }
+
+        // Ensure inviter (User A) is already in the shared room
+        firebaseFocusService.joinSharedFocusRoom(
+                focusSession.getId(),
+                userUid,
+                roomId,
+                focusSession.getPlannedDuration() - focusSession.getElapsedSeconds(),
+                displayName,
+                imageUrl
+        );
 
         // Push invitation to Firebase
         String invitationId = UUID.randomUUID().toString();

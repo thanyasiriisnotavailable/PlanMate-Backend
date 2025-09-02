@@ -54,7 +54,7 @@ public class FirebaseFocusService {
         // Convert groups to {groupId: true}
         Map<String, Object> groupsMap = new HashMap<>();
         for (Long groupId : groupIds) {
-            groupsMap.put(String.valueOf(groupId), true);
+            groupsMap.put("group_" + groupId, true);
         }
         userData.put("groups", groupsMap);
 
