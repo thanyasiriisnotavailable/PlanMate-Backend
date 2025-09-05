@@ -1,5 +1,6 @@
 package senior.project.controller;
 
+import com.google.api.pathtemplate.ValidationException;
 import com.google.firebase.internal.FirebaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,7 @@ public class FocusSessionController {
         try {
             var response = focusSessionService.startFocusSession(sessionId);
             return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (RuntimeException e) {
             e.printStackTrace();

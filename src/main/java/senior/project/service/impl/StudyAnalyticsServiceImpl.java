@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.StudyAnalyticsDao;
 import senior.project.dto.StudyAnalyticsDTO;
+import senior.project.enums.Range;
 import senior.project.service.StudyAnalyticsService;
 import senior.project.util.SecurityUtil;
 
@@ -20,14 +21,15 @@ public class StudyAnalyticsServiceImpl implements StudyAnalyticsService {
     private final StudyAnalyticsDao studyAnalyticsDao;
 
     @Override
-    public StudyAnalyticsDTO getAnalytics(String range, LocalDate date) {
+    public StudyAnalyticsDTO getAnalytics(Range range, LocalDate date) {
+        String rangeStr = range.toString();
         String userUid = SecurityUtil.getAuthenticatedUid();
-        int totalSessions = studyAnalyticsDao.countCompletedSessions(userUid, range, date);
-        long totalDuration = studyAnalyticsDao.sumFocusDuration(userUid, range, date);
-        Map<String, Long> subjectBreakdown = removeNullKeys(studyAnalyticsDao.getSubjectBreakdown(userUid, range, date));
+        int totalSessions = studyAnalyticsDao.countCompletedSessions(userUid, rangeStr, date);
+        long totalDuration = studyAnalyticsDao.sumFocusDuration(userUid, rangeStr, date);
+        Map<String, Long> subjectBreakdown = removeNullKeys(studyAnalyticsDao.getSubjectBreakdown(userUid, rangeStr, date));
 
         List<StudyAnalyticsDTO.FocusSessionDetailDTO> sessionDetails =
-                studyAnalyticsDao.getCompletedSessionsWithTimes(userUid, range, date).stream()
+                studyAnalyticsDao.getCompletedSessionsWithTimes(userUid, rangeStr, date).stream()
                         .map(row -> StudyAnalyticsDTO.FocusSessionDetailDTO.builder()
                                 .id((String) row[0])
                                 .courseName((String) row[1])

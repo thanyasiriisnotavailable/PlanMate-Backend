@@ -133,7 +133,6 @@ public class StudyGroupServiceImpl implements StudyGroupService {
             groupMemberDao.save(groupMember);
 
             return ResponseEntity.ok("Joined group: " + group.getName());
-
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Network issue. Please try again.");
         }

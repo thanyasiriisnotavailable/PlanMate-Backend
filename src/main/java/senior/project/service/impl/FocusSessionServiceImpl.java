@@ -17,6 +17,7 @@ import senior.project.entity.FocusSession;
 import senior.project.entity.User;
 import senior.project.entity.plan.Session;
 import senior.project.enums.FocusStatus;
+import com.google.api.pathtemplate.ValidationException;
 import senior.project.firebase.FirebaseFocusService;
 import senior.project.service.FocusSessionService;
 import senior.project.util.DTOMapper;
@@ -65,12 +66,21 @@ public class FocusSessionServiceImpl implements FocusSessionService {
     public Map<String, Object> startFocusSession(String sessionId) {
         Session session = sessionDao.findById(sessionId);
         if (session == null) {
-            throw new IllegalArgumentException("Session not found or unauthorized.");
+            throw new ValidationException("Session not found or unauthorized.");
+        }
+
+        long durationSeconds = session.getDuration();
+        if (durationSeconds <= 0) {
+            throw new ValidationException("Focus duration must be greater than zero.");
         }
 
         String userUid = SecurityUtil.getAuthenticatedUid();
         User user = userDao.findByUid(userUid);
-        long durationSeconds = session.getDuration();
+
+        FocusSessionDTO activeFocus = getActiveFocusSessionForUser(userUid);
+        if (activeFocus != null) {
+            throw new ValidationException("You already have an active focus session.");
+        }
 
         LocalDateTime focusStart = LocalDateTime.now();
 
@@ -88,53 +98,46 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         focusSessionDao.save(focusSession);
 
-        // Fetch display name and image
         UserRecord rec = null;
-        try { rec = firebaseAuth.getUser(userUid); } catch (FirebaseAuthException ignore) {}
+        try {
+            rec = firebaseAuth.getUser(userUid);
+        } catch (FirebaseAuthException ignore) {
+        }
         String displayName = (rec != null && rec.getDisplayName() != null && !rec.getDisplayName().isBlank())
                 ? rec.getDisplayName() : user.getEmail();
         String imageUrl = (rec != null) ? rec.getPhotoUrl() : null;
 
-
-        // Collect group IDs
         List<Long> groupIds = groupMemberDao.findByUser(user).stream()
                 .map(member -> {
                     if (member.getGroup() == null) {
                         log.warn("User {} has a GroupMember with NULL group", user.getUid());
                         return null;
                     }
-                    Long gid = member.getGroup().getId();
-                    log.info("User {} belongs to group {}", user.getUid(), gid);
-                    return gid;
+                    return member.getGroup().getId();
                 })
                 .filter(Objects::nonNull)
                 .toList();
 
-
-        // Send to Firebase
-        try {
-            firebaseFocusService.writeFocusSession(
-                    focusSession.getId(),
-                    userUid,
-                    session.getSessionId(),
-                    durationSeconds,
-                    displayName,
-                    imageUrl,
-                    groupIds,
-                    focusStart,
-                    focusSession.getStatus()
-            );
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            System.err.println("Firebase sync failed: " + ex.getMessage());
-        }
+        firebaseFocusService.writeFocusSession(
+                focusSession.getId(),
+                userUid,
+                session.getSessionId(),
+                durationSeconds,
+                displayName,
+                imageUrl,
+                groupIds,
+                focusStart,
+                focusSession.getStatus()
+        );
 
         return Map.of(
                 "message", "Focus session started",
                 "focusSessionId", focusSession.getId(),
                 "sessionId", session.getSessionId(),
                 "startTime", focusStart,
-                "duration", durationSeconds
+                "duration", durationSeconds,
+                "status", focusSession.getStatus().toString(),
+                "groupIds", groupIds
         );
     }
 
@@ -264,7 +267,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         // Get A’s active session
         FocusSession focusSession = focusSessionDao.findByUserUidAndStatus(userUid, FocusStatus.FOCUSING);
         if (focusSession == null) {
-            throw new IllegalArgumentException("You must have an active focus session to invite someone.");
+            throw new ValidationException("You must have an active focus session to invite someone.");
         }
 
         // Generate roomId (based on inviter’s UID)
@@ -312,7 +315,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Validate session and user
         if (focusSession == null) {
-            throw new IllegalArgumentException("You must have an active focus session to join a shared room.");
+            throw new ValidationException("You must have an active focus session to join a shared room.");
         }
 
         // Check if the user is already in a shared room
@@ -367,7 +370,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         boolean success = firebaseFocusService.removeInvitation(userUid, invitationId);
 
         if (!success) {
-            throw new IllegalArgumentException("Invitation not found or already handled.");
+            throw new ValidationException("Invitation not found or already handled.");
         }
 
         return Map.of(

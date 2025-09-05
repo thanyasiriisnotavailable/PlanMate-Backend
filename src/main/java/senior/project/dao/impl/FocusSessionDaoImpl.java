@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import senior.project.dao.FocusSessionDao;
 import senior.project.entity.FocusSession;
+import senior.project.entity.User;
 import senior.project.enums.FocusStatus;
 import senior.project.repository.FocusSessionRepository;
 

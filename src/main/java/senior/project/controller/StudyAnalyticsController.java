@@ -21,10 +21,10 @@ public class StudyAnalyticsController {
 
     @GetMapping
     public ResponseEntity<StudyAnalyticsDTO> getAnalytics(
-            @RequestParam Range range,       // day, week, month, year
+            @RequestParam Range range,       // DAY, WEEK, MONTH, YEAR
             @RequestParam LocalDate date     // selected date
     ) {
-        StudyAnalyticsDTO analytics = studyAnalyticsService.getAnalytics(range.toString(), date);
+        StudyAnalyticsDTO analytics = studyAnalyticsService.getAnalytics(range, date);
         return ResponseEntity.ok(analytics);
     }
 }

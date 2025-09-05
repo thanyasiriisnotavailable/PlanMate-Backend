@@ -144,7 +144,7 @@ public class StudyGroupSystemTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(payload))
                     .andExpect(status().isInternalServerError())
-                    .andExpect(content().string(containsString("Group creation failed")));
+                    .andExpect(content().string("Group creation failed. Please try again later."));
         }
     }
 
@@ -228,4 +228,89 @@ public class StudyGroupSystemTest {
                     .andExpect(content().string(containsString("Network issue")));
         }
     }
+
+    // ========== STC-12-TC-01 ==========
+    @Test
+    void STC_12_TC_01_joinGroup_valid_shouldReturnJson() throws Exception {
+        String joinCode = "ABC123";
+        StudyGroup mockGroup = StudyGroup.builder()
+                .id(101L)
+                .name("Math Final")
+                .joinCode(joinCode)
+                .build();
+        User mockUser = User.builder().uid(TEST_UID).build();
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.of(mockGroup));
+            when(userDao.findByUid(TEST_UID)).thenReturn(mockUser);
+            when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(false);
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("Joined group: Math Final"));
+        }
+    }
+
+    // ========== STC-12-TC-02 ==========
+    @Test
+    void STC_12_TC_02_joinGroup_codeNotFound_shouldReturnTextError() throws Exception {
+        String joinCode = "ZZZZZZ";
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.empty());
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string("Invalid join code"));
+        }
+    }
+
+    // ========== STC-12-TC-03 ==========
+    @Test
+    void STC_12_TC_03_joinGroup_alreadyMember_shouldReturnTextError() throws Exception {
+        String joinCode = "ABC123";
+        StudyGroup mockGroup = StudyGroup.builder().id(101L).name("Math Final").joinCode(joinCode).build();
+        User mockUser = User.builder().uid(TEST_UID).build();
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenReturn(Optional.of(mockGroup));
+            when(userDao.findByUid(TEST_UID)).thenReturn(mockUser);
+            when(groupMemberDao.existsByUserAndGroup(mockUser, mockGroup)).thenReturn(true);
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string("You are already a member of this group."));
+        }
+    }
+
+    // ========== STC-12-TC-04 ==========
+    @Test
+    void STC_12_TC_04_joinGroup_exception_shouldReturnTextError() throws Exception {
+        String joinCode = "ABC123";
+
+        try (MockedStatic<SecurityUtil> sec = Mockito.mockStatic(SecurityUtil.class)) {
+            sec.when(SecurityUtil::getAuthenticatedUid).thenReturn(TEST_UID);
+
+            when(studyGroupDao.findByJoinCode(joinCode)).thenThrow(new RuntimeException("DB error"));
+
+            mvc.perform(post("/groups/join/" + joinCode)
+                            .with(user(TEST_UID))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string("Network issue. Please try again."));
+        }
+    }
+    
 }
