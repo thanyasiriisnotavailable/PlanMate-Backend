@@ -234,7 +234,7 @@ class ScheduleServiceImplTest {
                 when(mapper.toSession(badSession)).thenThrow(new IllegalArgumentException("Date cannot be null"));
 
                 // Act & Assert
-                assertThrows(IllegalArgumentException.class, () -> {
+                assertThrows(ValidationException.class, () -> {
                     scheduleService.saveSchedule(dto);
                 });
                 verify(scheduleDao, never()).save(any());

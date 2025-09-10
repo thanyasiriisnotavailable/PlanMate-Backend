@@ -148,11 +148,15 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Check if the session is currently focusing
         if (focusSession == null || focusSession.getStatus() != FocusStatus.FOCUSING) {
-            throw new IllegalStateException("Session is not active or not found.");
+            throw new ValidationException("Session is not active or not found.");
         }
 
         // Calculate elapsed time from the last start/resume
-        long secondsFromLastAction = java.time.Duration.between(focusSession.getFocusStart(), LocalDateTime.now()).getSeconds();
+        LocalDateTime start = focusSession.getFocusStart();
+        if (start == null) {
+            throw new ValidationException("Focus session start time is not set.");
+        }
+        long secondsFromLastAction = java.time.Duration.between(start, LocalDateTime.now()).getSeconds();
 
         // Update elapsedSeconds and status
         focusSession.setElapsedSeconds(focusSession.getElapsedSeconds() + secondsFromLastAction);
@@ -170,9 +174,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
             );
         } catch (Exception ex) {
             log.warn("Firebase sync failed for focusSessionId={} userUid={}: {}", focusSession.getId(), focusSession.getUser().getUid(), ex.getMessage());
-            // optionally log full exception at debug level:
             log.debug("Firebase sync exception", ex);
-            ex.printStackTrace();
         }
 
         return dtoMapper.toFocusSessionDto(focusSession);
@@ -185,7 +187,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
 
         // Check if the session is currently paused
         if (focusSession == null || focusSession.getStatus() != FocusStatus.PAUSED) {
-            throw new IllegalStateException("Session is not in a pausable state.");
+            throw new ValidationException("Session is not in a pausable state.");
         }
 
         // Reset focus start time to the current time
@@ -215,17 +217,28 @@ public class FocusSessionServiceImpl implements FocusSessionService {
     public FocusSessionDTO endFocusSession(String focusSessionId) {
         FocusSession focusSession = focusSessionDao.findById(focusSessionId);
 
+        if (focusSession == null) {
+            throw new NullPointerException("Focus session not found.");
+        }
+
         if (focusSession.getFocusEnd() != null || focusSession.getStatus() == FocusStatus.COMPLETED) {
-            throw new IllegalStateException("This session has already been completed.");
+            throw new ValidationException("This session has already been completed.");
         }
         // Check if the session is active (FOCUSING) before ending
         if (focusSession.getStatus() != FocusStatus.FOCUSING) {
-            throw new IllegalStateException("This session is not currently active.");
+            throw new ValidationException("This session is not currently active.");
         }
 
         // Calculate final elapsed seconds based on the last active period
         long secondsFromLastAction = java.time.Duration.between(focusSession.getFocusStart(), LocalDateTime.now()).getSeconds();
-        focusSession.setElapsedSeconds(focusSession.getElapsedSeconds() + secondsFromLastAction);
+        long totalElapsed = focusSession.getElapsedSeconds() + secondsFromLastAction;
+
+        // prevent duration < 5 min
+        if (totalElapsed < 300) {
+            throw new ValidationException("Focus session is too short. Minimum duration is 5 minutes.");
+        }
+
+        focusSession.setElapsedSeconds(totalElapsed);
 
         // Set end time and status
         focusSession.setFocusEnd(LocalDateTime.now());
@@ -321,13 +334,13 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         // Check if the user is already in a shared room
         String existingRoomId = firebaseFocusService.getSharedRoomIdForUser(userUid);
         if (existingRoomId != null) {
-            throw new IllegalStateException("You are already in a shared room with ID: " + existingRoomId);
+            throw new ValidationException("You are already in a shared room with ID: " + existingRoomId);
         }
 
         // Check the number of active users in the room
         long activeMembersCount = firebaseFocusService.countActiveUsersInRoom(roomId);
         if (activeMembersCount >= 5) {
-            throw new IllegalStateException("The shared focus room has reached the maximum of 5 members.");
+            throw new ValidationException("The shared focus room has reached the maximum of 5 members.");
         }
 
         // Get display name and image for Firebase

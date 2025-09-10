@@ -1,5 +1,6 @@
 package senior.project.service.impl;
 
+import com.google.api.pathtemplate.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import senior.project.dao.StudyAnalyticsDao;
@@ -22,8 +23,16 @@ public class StudyAnalyticsServiceImpl implements StudyAnalyticsService {
 
     @Override
     public StudyAnalyticsDTO getAnalytics(Range range, LocalDate date) {
+        if (range == null) {
+            throw new ValidationException("Range must not be null.");
+        }
+        if (date == null) {
+            throw new ValidationException("Date must not be null.");
+        }
+
         String rangeStr = range.toString();
         String userUid = SecurityUtil.getAuthenticatedUid();
+
         int totalSessions = studyAnalyticsDao.countCompletedSessions(userUid, rangeStr, date);
         long totalDuration = studyAnalyticsDao.sumFocusDuration(userUid, rangeStr, date);
         Map<String, Long> subjectBreakdown = removeNullKeys(studyAnalyticsDao.getSubjectBreakdown(userUid, rangeStr, date));
@@ -46,7 +55,6 @@ public class StudyAnalyticsServiceImpl implements StudyAnalyticsService {
                 .subjectBreakdown(subjectBreakdown)
                 .focusSessions(sessionDetails)
                 .build();
-
     }
 
     private <K, V> Map<K, V> removeNullKeys(Map<K, V> map) {
