@@ -8,4 +8,5 @@ public interface FocusSessionDao {
     FocusSession findById(String id);
     long sumFocusSecondsByUser(String uid);
     FocusSession findByUserUidAndStatus(String userUid, FocusStatus focusStatus);
+    void delete(FocusSession focusSession);
 }

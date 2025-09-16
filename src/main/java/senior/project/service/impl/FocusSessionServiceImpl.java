@@ -233,25 +233,6 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         long secondsFromLastAction = java.time.Duration.between(focusSession.getFocusStart(), LocalDateTime.now()).getSeconds();
         long totalElapsed = focusSession.getElapsedSeconds() + secondsFromLastAction;
 
-        // prevent duration < 5 min
-        if (totalElapsed < 300) {
-            throw new ValidationException("Focus session is too short. Minimum duration is 5 minutes.");
-        }
-
-        focusSession.setElapsedSeconds(totalElapsed);
-
-        // Set end time and status
-        focusSession.setFocusEnd(LocalDateTime.now());
-        focusSession.setStatus(FocusStatus.COMPLETED);
-
-        Session relatedSession = focusSession.getSession();
-        if (relatedSession != null) {
-            relatedSession.setIsCompleted(true);
-            sessionDao.save(relatedSession);
-        }
-
-        focusSessionDao.save(focusSession);
-
         // Cleanup Firebase
         try {
             List<Long> groupIds = groupMemberDao.findByUser(focusSession.getUser())
@@ -268,6 +249,26 @@ public class FocusSessionServiceImpl implements FocusSessionService {
             ex.printStackTrace();
             System.err.println("Firebase cleanup failed: " + ex.getMessage());
         }
+
+        // prevent duration < 5 min
+        if (totalElapsed < 300) {
+            focusSessionDao.delete(focusSession);
+            throw new ValidationException("Focus session is too short. Minimum duration is 5 minutes.");
+        }
+
+        focusSession.setElapsedSeconds(totalElapsed);
+
+        // Set end time and status
+        focusSession.setFocusEnd(LocalDateTime.now());
+        focusSession.setStatus(FocusStatus.COMPLETED);
+
+        Session relatedSession = focusSession.getSession();
+        if (relatedSession != null) {
+            relatedSession.setIsCompleted(true);
+            sessionDao.save(relatedSession);
+        }
+
+        focusSessionDao.save(focusSession);
 
         return dtoMapper.toFocusSessionDto(focusSession);
     }

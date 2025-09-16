@@ -32,4 +32,9 @@ public class FocusSessionDaoImpl implements FocusSessionDao {
     public FocusSession findByUserUidAndStatus(String userUid, FocusStatus focusStatus) {
         return focusSessionRepository.findByUserUidAndStatus(userUid, focusStatus).orElse(null);
     }
+
+    @Override
+    public void delete(FocusSession focusSession) {
+        focusSessionRepository.delete(focusSession);
+    }
 }
