@@ -1,0 +1,18 @@
+package senior.project.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import senior.project.dto.plan.SessionDTO;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ToDoListResponseDTO {
+    private List<SessionDTO> overdue;
+    private List<SessionDTO> today;
+    private List<SessionDTO> tomorrow;
+    private List<SessionDTO> upcoming;
+}

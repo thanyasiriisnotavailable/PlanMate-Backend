@@ -467,7 +467,6 @@ public class StudySetupServiceImpl implements StudySetupService {
                 throw new ValidationException("Assignment due date must be within the term date range.");
             }
 
-            // STC-08-TC-07: Test with invalid estimated time
             if (dto.getEstimatedTime() < 0) {
                 throw new ValidationException("Invalid assignment estimated time.");
             }

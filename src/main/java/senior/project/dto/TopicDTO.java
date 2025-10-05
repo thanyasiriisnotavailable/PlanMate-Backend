@@ -14,7 +14,4 @@ public class TopicDTO {
     private Long confidence;
     private Long estimatedStudyTime;
     private ExamType examType;
-
-    public TopicDTO(String t1, String newName) {
-    }
 }

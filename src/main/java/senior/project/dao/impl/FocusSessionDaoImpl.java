@@ -1,0 +1,40 @@
+package senior.project.dao.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import senior.project.dao.FocusSessionDao;
+import senior.project.entity.FocusSession;
+import senior.project.entity.User;
+import senior.project.enums.FocusStatus;
+import senior.project.repository.FocusSessionRepository;
+
+@Repository
+@RequiredArgsConstructor
+public class FocusSessionDaoImpl implements FocusSessionDao {
+    private final FocusSessionRepository focusSessionRepository;
+
+    @Override
+    public FocusSession save(FocusSession focusSession) {
+        return focusSessionRepository.save(focusSession);
+    }
+
+    @Override
+    public FocusSession findById(String id) {
+        return focusSessionRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public long sumFocusSecondsByUser(String uid) {
+        return focusSessionRepository.sumElapsedSecondsByUserUid(uid);
+    }
+
+    @Override
+    public FocusSession findByUserUidAndStatus(String userUid, FocusStatus focusStatus) {
+        return focusSessionRepository.findByUserUidAndStatus(userUid, focusStatus).orElse(null);
+    }
+
+    @Override
+    public void delete(FocusSession focusSession) {
+        focusSessionRepository.delete(focusSession);
+    }
+}

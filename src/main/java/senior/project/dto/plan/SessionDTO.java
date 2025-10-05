@@ -21,6 +21,7 @@ public class SessionDTO {
     private Long duration;
     private SessionType type;
     private Boolean isScheduled;
+    private Boolean isCompleted;
     private Integer sessionNumber;
     private Integer totalSessionsInGroup;
 

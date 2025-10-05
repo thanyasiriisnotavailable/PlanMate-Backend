@@ -149,6 +149,7 @@ public interface DTOMapper {
     Session toSession(SessionDTO sDto);
 
     @Mapping(source = "sessionId", target = "sessionId")
+    @Mapping(source = "isCompleted", target = "isCompleted")
     @Mapping(target = "isScheduled", source = "isScheduled")
     @Mapping(source = "course.courseId", target = "courseId")
     @Mapping(source = "topic.id", target = "topicId")
@@ -237,4 +238,34 @@ public interface DTOMapper {
                 .isCompleted(session.getIsCompleted())
                 .build();
     }
+
+    @Mapping(target = "session", source = "session")
+    @Mapping(target = "courseId", source = "course.courseId")
+    @Mapping(target = "topicId", source = "session.topic.id")
+    @Mapping(target = "assignmentId", source = "session.assignment.id")
+    @Mapping(target = "courseName", source = "session.course.name")
+    @Mapping(target = "topicName", source = "session.topic.name")
+    @Mapping(target = "assignmentName", source = "session.assignment.name")
+    FocusSessionDTO toFocusSessionDto(FocusSession focusSession);
+
+    @AfterMapping
+    default void fillDisplayName(FocusSession focusSession, @MappingTarget FocusSessionDTO dto) {
+        String display = null;
+
+        if (focusSession.getTopic() != null && focusSession.getTopic().getName() != null) {
+            display = focusSession.getTopic().getName();
+        } else if (focusSession.getAssignment() != null && focusSession.getAssignment().getName() != null) {
+            display = focusSession.getAssignment().getName();
+        } else if (focusSession.getSession() != null
+                && focusSession.getSession().getAssignment() != null
+                && focusSession.getSession().getAssignment().getName() != null) {
+            display = focusSession.getSession().getAssignment().getName();
+        } else {
+            display = "Untitled";
+        }
+
+        dto.setDisplayName(display);
+    }
+
+    List<FocusSessionDTO> toFocusSessionDtos(List<FocusSession> focusSessions);
 }

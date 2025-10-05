@@ -1,0 +1,136 @@
+package senior.project.controller;
+
+import com.google.api.pathtemplate.ValidationException;
+import com.google.firebase.internal.FirebaseService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import senior.project.dto.FocusSessionDTO;
+import senior.project.firebase.FirebaseFocusService;
+import senior.project.service.FocusSessionService;
+import senior.project.util.SecurityUtil;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/focus")
+@RequiredArgsConstructor
+public class FocusSessionController {
+    private final FocusSessionService focusSessionService;
+    private final FirebaseFocusService firebaseFocusService;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FocusSessionDTO> getFocusSession(@PathVariable String id) {
+        FocusSessionDTO focusSession = focusSessionService.getFocusSessionById(id);
+        if (focusSession == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(focusSession);
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<FocusSessionDTO> getActiveFocusSession() {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        FocusSessionDTO focusSession = focusSessionService.getActiveFocusSessionForUser(userUid);
+        if (focusSession == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(focusSession);
+    }
+
+    @PostMapping("/{sessionId}/start")
+    public ResponseEntity<?> startFocusSession(@PathVariable String sessionId) {
+
+        try {
+            var response = focusSessionService.startFocusSession(sessionId);
+            return ResponseEntity.ok(response);
+        } catch (ValidationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to start session. Please try again later.");
+        }
+    }
+
+    @PostMapping("/{focusId}/pause")
+    public ResponseEntity<?> pauseFocusSession(@PathVariable String focusId) {
+        try {
+            var response = focusSessionService.pauseFocusSession(focusId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to pause session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{focusId}/resume")
+    public ResponseEntity<?> resumeFocusSession(@PathVariable String focusId) {
+        try {
+            var response = focusSessionService.resumeFocusSession(focusId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to resume session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{focusId}/end")
+    public ResponseEntity<?> endFocusSession(@PathVariable String focusId) {
+        try {
+            var response = focusSessionService.endFocusSession(focusId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to end session: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/invite/{targetUserId}")
+    public ResponseEntity<?> inviteToSharedRoom(@PathVariable String targetUserId) {
+        try {
+            var response = focusSessionService.inviteUserToSharedRoom(targetUserId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to send invitation. Please try again later.");
+        }
+    }
+
+    @PostMapping("/join-room/{roomId}")
+    public ResponseEntity<?> joinSharedRoom(@PathVariable String roomId) {
+        try {
+            var response = focusSessionService.joinSharedFocusRoom(roomId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to join shared room. Please try again later.");
+        }
+    }
+
+    @PostMapping("/invite/{invitationId}/decline")
+    public ResponseEntity<?> declineInvitation(@PathVariable String invitationId) {
+        try {
+            var response = focusSessionService.declineInvitation(invitationId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Unable to decline invitation. Please try again later.");
+        }
+    }
+
+    @PostMapping("/leave-room/{roomId}")
+    public ResponseEntity<?> leaveSharedRoom(@PathVariable String roomId) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        firebaseFocusService.leaveSharedFocusRoom(userUid, roomId);
+        return ResponseEntity.ok(Map.of("message", "Left shared room", "roomId", roomId));
+    }
+}
