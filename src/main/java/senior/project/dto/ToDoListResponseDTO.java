@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ToDoListResponseDTO {
+    private List<SessionDTO> overdue;
     private List<SessionDTO> today;
     private List<SessionDTO> tomorrow;
     private List<SessionDTO> upcoming;

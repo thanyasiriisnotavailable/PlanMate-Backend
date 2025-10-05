@@ -253,7 +253,7 @@ public class FocusSessionServiceImpl implements FocusSessionService {
         // prevent duration < 5 min
         if (totalElapsed < 300) {
             focusSessionDao.delete(focusSession);
-            throw new ValidationException("Focus session is too short. Minimum duration is 5 minutes.");
+            return null;
         }
 
         focusSession.setElapsedSeconds(totalElapsed);

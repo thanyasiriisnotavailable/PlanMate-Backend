@@ -6,6 +6,8 @@ import senior.project.entity.plan.Session;
 import java.util.List;
 
 public interface SessionDao {
+    List<Session> getOverdueSessions(User user);
+
     List<Session> getTodaySessions(User user);
     List<Session> getTomorrowSessions(User user);
     List<Session> getFutureSessions(User user);

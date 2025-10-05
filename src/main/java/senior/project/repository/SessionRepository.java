@@ -17,6 +17,28 @@ public interface SessionRepository extends JpaRepository<Session, String> {
     int countBySchedule_User_Uid(String uid);
     int countBySchedule_User_UidAndFocusSessions_Status(String uid, FocusStatus status);
 
+    @Query("""
+        SELECT s FROM Session s
+        WHERE s.schedule.user = :user
+          AND s.date = CURRENT_DATE
+          AND (
+            s.isCompleted = false
+            AND FUNCTION('TIME', s.start) >= CURRENT_TIME
+          )
+    """)
+    List<Session> findTodayActiveSessions(@Param("user") User user);
+
+    @Query("""
+        SELECT s FROM Session s
+        WHERE s.schedule.user = :user
+          AND s.isCompleted = false
+          AND (
+            s.date < CURRENT_DATE
+            OR (s.date = CURRENT_DATE AND FUNCTION('TIME', s.start) < CURRENT_TIME)
+          )
+    """)
+    List<Session> findOverdueSessions(@Param("user") User user);
+
     @Query("SELECT s FROM Session s WHERE s.schedule.user = :user AND s.isCompleted = true")
     List<Session> getCompletedSessions(@Param("user") User user);
 }

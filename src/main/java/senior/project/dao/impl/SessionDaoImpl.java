@@ -17,8 +17,13 @@ public class SessionDaoImpl implements SessionDao {
     private final SessionRepository sessionRepository;
 
     @Override
+    public List<Session> getOverdueSessions(User user) {
+        return sessionRepository.findOverdueSessions(user);
+    }
+
+    @Override
     public List<Session> getTodaySessions(User user) {
-        return sessionRepository.findBySchedule_UserAndDate(user, LocalDate.now());
+        return sessionRepository.findTodayActiveSessions(user);
     }
 
     @Override

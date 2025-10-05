@@ -32,6 +32,7 @@ public class SessionServiceImpl implements SessionService {
         }
 
         Map<String, List<Session>> sessionMap = new HashMap<>();
+        sessionMap.put("overdue", sessionDao.getOverdueSessions(user));
         sessionMap.put("today", sessionDao.getTodaySessions(user));
         sessionMap.put("tomorrow", sessionDao.getTomorrowSessions(user));
         sessionMap.put("upcoming", sessionDao.getFutureSessions(user));

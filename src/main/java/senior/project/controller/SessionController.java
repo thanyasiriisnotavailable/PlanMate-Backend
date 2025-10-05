@@ -22,6 +22,7 @@ public class SessionController {
         Map<String, List<SessionDTO>> dtoMap = sessionService.getToDoListSessions();
 
         ToDoListResponseDTO dto = new ToDoListResponseDTO(
+                dtoMap.get("overdue"),
                 dtoMap.get("today"),
                 dtoMap.get("tomorrow"),
                 dtoMap.get("upcoming")
