@@ -34,7 +34,7 @@ public class FirebaseFocusService {
         long startMillis = focusStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long endMillis = startMillis + durationSeconds * 1000;
 
-        // Prepare focus session data
+        // Focus session data
         Map<String, Object> focusData = new HashMap<>();
         focusData.put("id", focusSessionId);
         focusData.put("userId", userId);
@@ -44,48 +44,53 @@ public class FirebaseFocusService {
         focusData.put("endsAt", endMillis);
         focusData.put("duration", durationSeconds);
 
-        // Prepare active user data
+        // Active user data
         Map<String, Object> userData = new HashMap<>();
         userData.put("name", userName);
         userData.put("image", userImage);
         userData.put("focusMode", true);
         userData.put("focusSessionId", focusSessionId);
 
-        // Convert groups to {groupId: true}
         Map<String, Object> groupsMap = new HashMap<>();
         for (Long groupId : groupIds) {
             groupsMap.put("group_" + groupId, true);
         }
         userData.put("groups", groupsMap);
 
-        // Multi-path update (atomic write)
         Map<String, Object> updates = new HashMap<>();
         updates.put("/focusSessions/" + focusSessionId, focusData);
         updates.put("/activeUsers/" + userId, userData);
+
         for (Long groupId : groupIds) {
             updates.put("/activeGroups/" + groupId + "/" + userId, true);
         }
 
-        rootRef.updateChildrenAsync(updates);
-
-        // Handle onDisconnect cleanup
-        DatabaseReference userRef = firebaseDatabase.getReference("activeUsers").child(userId);
-        userRef.onDisconnect().removeValue((error, ref) -> {
-            if (error != null) {
-                System.err.println("Failed to set onDisconnect for user: " + error.getMessage());
-            }
-        });
-
         for (Long groupId : groupIds) {
-            DatabaseReference groupRef = firebaseDatabase.getReference("activeGroups")
-                    .child(String.valueOf(groupId))
-                    .child(userId);
-            groupRef.onDisconnect().removeValue((error, ref) -> {
-                if (error != null) {
-                    System.err.println("Failed to set onDisconnect for group " + groupId + ": " + error.getMessage());
+            DatabaseReference groupRef = firebaseDatabase.getReference("activeGroups").child(String.valueOf(groupId));
+            groupRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    if (snapshot.exists()) {
+                        Map<String, Object> friendshipUpdates = new HashMap<>();
+                        for (DataSnapshot member : snapshot.getChildren()) {
+                            String friendId = member.getKey();
+                            if (!friendId.equals(userId)) {
+                                friendshipUpdates.put("/friendships/" + userId + "/" + friendId, true);
+                                friendshipUpdates.put("/friendships/" + friendId + "/" + userId, true);
+                            }
+                        }
+                        rootRef.updateChildrenAsync(friendshipUpdates);
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError error) {
+                    System.err.println("Failed to fetch group members: " + error.getMessage());
                 }
             });
         }
+
+        rootRef.updateChildrenAsync(updates);
     }
 
     public void updateFocusSession(
