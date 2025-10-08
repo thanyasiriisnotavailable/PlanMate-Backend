@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface UserService {
     User save(User user);
     User findByUid(String uid);;
+    void updateFcmToken(String uid, String token);
+    String getFcmToken(String uid);
 }

@@ -17,4 +17,5 @@ public class User {
     @EqualsAndHashCode.Include
     private String uid;  // Firebase UID
     private String email;
+    private String fcmToken;
 }
