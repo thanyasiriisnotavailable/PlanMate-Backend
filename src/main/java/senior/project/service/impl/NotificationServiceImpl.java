@@ -96,12 +96,8 @@ public class NotificationServiceImpl implements NotificationService {
             // Build proper FCM notification payload
             Message message = Message.builder()
                     .setToken(token)
-                    .setNotification(
-                            com.google.firebase.messaging.Notification.builder()
-                                    .setTitle(title)
-                                    .setBody(content)
-                                    .build()
-                    )
+                    .putData("title", title)
+                    .putData("body", content)
                     .putData("type", type != null ? type.name() : "GENERAL")
                     .build();
 
