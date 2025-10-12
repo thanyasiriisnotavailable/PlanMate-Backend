@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import senior.project.dao.NotificationDao;
+import senior.project.dto.NotificationDTO;
 import senior.project.dto.NotificationRequestDTO;
 import senior.project.entity.Notification;
 import senior.project.entity.User;
@@ -12,10 +13,11 @@ import senior.project.service.NotificationService;
 import senior.project.service.UserService;
 import senior.project.util.SecurityUtil;
 
-// Import only what we need, and fully qualify Firebase's Notification
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -23,6 +25,36 @@ import com.google.firebase.messaging.Message;
 public class NotificationServiceImpl implements NotificationService {
     private final UserService userService;
     private final NotificationDao notificationDao;
+
+    @Override
+    public List<NotificationDTO> getNotificationsForCurrentUser() {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        if (userUid == null) {
+            log.warn("Authenticated UID is null — cannot fetch notifications.");
+            throw new IllegalStateException("No authenticated user");
+        }
+
+        User user = userService.findByUid(userUid);
+        if (user == null) {
+            log.warn("User not found for uid={}", userUid);
+            return List.of();
+        }
+
+        // Assuming notificationDao can fetch notifications by user
+        List<Notification> notifications = notificationDao.getNotificationsByUser(user);
+
+        // Map entities to DTOs
+        return notifications.stream()
+                .map(n -> NotificationDTO.builder()
+                        .id(n.getId())
+                        .title(n.getTitle())
+                        .content(n.getContent())
+                        .type(n.getType())
+                        .isRead(n.getIsRead())
+                        .time(n.getTime())
+                        .build())
+                .toList();
+    }
 
     @Override
     public void saveFcmToken(String token) {

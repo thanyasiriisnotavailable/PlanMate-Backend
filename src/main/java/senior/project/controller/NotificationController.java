@@ -2,13 +2,12 @@ package senior.project.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import senior.project.dto.NotificationDTO;
 import senior.project.dto.NotificationRequestDTO;
 import senior.project.service.NotificationService;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,6 +16,12 @@ import java.util.Map;
 public class NotificationController {
 
     private final NotificationService notificationService;
+
+    @GetMapping
+    public ResponseEntity<List<NotificationDTO>> getNotification() {
+        List<NotificationDTO> notifications = notificationService.getNotificationsForCurrentUser();
+        return ResponseEntity.ok(notifications);
+    }
 
     @PostMapping("/token")
     public ResponseEntity<?> saveFcmToken(@RequestBody Map<String, String> body) {
