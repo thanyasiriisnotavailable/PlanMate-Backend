@@ -79,7 +79,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendNotification(NotificationRequestDTO request) {
-        String userUid = SecurityUtil.getAuthenticatedUid();
+        String userUid = request.getUserUid();
         String token = userService.getFcmToken(userUid);
         User user = userService.findByUid(userUid);
 

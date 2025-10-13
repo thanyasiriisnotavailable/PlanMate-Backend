@@ -13,9 +13,7 @@ import senior.project.service.StudyGroupService;
 import senior.project.util.SecurityUtil;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -132,7 +130,12 @@ public class StudyGroupServiceImpl implements StudyGroupService {
                     .build();
             groupMemberDao.save(groupMember);
 
-            return ResponseEntity.ok("Joined group: " + group.getName());
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Joined group successfully");
+            response.put("groupId", group.getId());
+            response.put("groupName", group.getName());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Network issue. Please try again.");
         }

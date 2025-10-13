@@ -7,6 +7,7 @@ import senior.project.enums.NotificationType;
 @AllArgsConstructor
 @Builder
 public class NotificationRequestDTO {
+    private String userUid;
     private String title;
     private String content;
     private NotificationType type;
