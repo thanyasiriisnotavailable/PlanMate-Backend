@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import senior.project.dao.NotificationDao;
+import senior.project.dao.PendingNotificationDao;
 import senior.project.dto.NotificationDTO;
 import senior.project.dto.NotificationRequestDTO;
 import senior.project.entity.Notification;
+import senior.project.entity.PendingNotification;
 import senior.project.entity.User;
 import senior.project.enums.NotificationType;
 import senior.project.service.NotificationService;
@@ -25,6 +27,7 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
     private final UserService userService;
     private final NotificationDao notificationDao;
+    private final PendingNotificationDao pendingNotificationDao;
 
     @Override
     public List<NotificationDTO> getNotificationsForCurrentUser() {
@@ -71,6 +74,9 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             userService.updateFcmToken(userUid, token);
             log.debug("Saved FCM token for uid={}", userUid);
+
+            // Process pending notifications
+            processPendingNotificationsForUser(userUid);
         } catch (Exception e) {
             log.error("Error saving FCM token for uid={}: {}", userUid, e.getMessage(), e);
             throw e;
@@ -85,6 +91,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (token == null || token.isEmpty()) {
             log.warn("No FCM token found for uid={} — notification not sent", userUid);
+            savePendingNotification(request); // Save for later
             return;
         }
 
@@ -154,5 +161,44 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("Error saving notification entity: {}", e.getMessage(), e);
         }
+    }
+
+    private void savePendingNotification(NotificationRequestDTO request) {
+        PendingNotification pending = PendingNotification.builder()
+                .targetUserUid(request.getUserUid())
+                .title(request.getTitle())
+                .content(request.getContent())
+                .type(request.getType())
+                // The 'createdAt' field is automatically set by @CreationTimestamp
+                .build();
+        pendingNotificationDao.save(pending);
+        log.info("Saved pending notification for user {}", request.getUserUid());
+    }
+
+    private void processPendingNotificationsForUser(String userUid) {
+        List<PendingNotification> pendingList = pendingNotificationDao.findByTargetUserUid(userUid);
+        if (pendingList.isEmpty()) {
+            return; // Nothing to do
+        }
+
+        log.info("Found {} pending notifications for user {}. Processing now...", pendingList.size(), userUid);
+
+        for (PendingNotification pending : pendingList) {
+            // Create a request DTO from the pending entity
+            NotificationRequestDTO request = NotificationRequestDTO.builder()
+                    .userUid(pending.getTargetUserUid())
+                    .title(pending.getTitle())
+                    .content(pending.getContent())
+                    .type(pending.getType())
+                    .build();
+
+            // Resend using the main method (this will now find a valid token)
+            // Important: This call is NOT recursive because the token now exists
+            sendNotification(request);
+
+            // After successfully sending (or attempting), delete it from the queue
+            pendingNotificationDao.delete(pending);
+        }
+        log.info("Finished processing pending notifications for user {}", userUid);
     }
 }
