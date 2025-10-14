@@ -113,6 +113,33 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
+    public void markAsRead(Long id) {
+        String userUid = SecurityUtil.getAuthenticatedUid();
+        if (userUid == null) {
+            log.warn("Authenticated UID is null — cannot mark as read.");
+            throw new IllegalStateException("No authenticated user");
+        }
+
+        User user = userService.findByUid(userUid);
+        if (user == null) {
+            throw new IllegalStateException("User not found for UID=" + userUid);
+        }
+
+        Notification notification = notificationDao.getNotificationById(id);
+        if (notification == null) {
+            throw new IllegalArgumentException("Notification not found: " + id);
+        }
+
+        // Ensure the user owns this notification
+        if (!notification.getUser().getUid().equals(user.getUid())) {
+            throw new SecurityException("You cannot modify someone else's notification");
+        }
+
+        notification.setIsRead(true);
+        notificationDao.saveNotification(notification);
+    }
+
     private void saveNotificationToDatabase(String title, String content, NotificationType type, User user) {
         try {
             senior.project.entity.Notification notification = Notification.builder()

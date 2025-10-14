@@ -9,4 +9,5 @@ public interface NotificationService {
     List<NotificationDTO> getNotificationsForCurrentUser();
     void saveFcmToken(String token);
     void sendNotification(NotificationRequestDTO request);
+    void markAsRead(Long id);
 }

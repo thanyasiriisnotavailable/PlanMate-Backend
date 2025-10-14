@@ -163,8 +163,8 @@ public class StudyGroupServiceImpl implements StudyGroupService {
         List<GroupMember> members = groupMemberDao.findByGroupId(groupId);
         if (members.isEmpty()) return List.of();
 
-        int taskWeight = 10;
-        int hourWeight = 5;
+        int taskWeight = 50;
+        int hourWeight = 30;
 
         List<GroupMemberProgressDTO> progressList = new ArrayList<>();
 

@@ -35,4 +35,10 @@ public class NotificationController {
         notificationService.sendNotification(request);
         return ResponseEntity.ok("Notification sent");
     }
+
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+        notificationService.markAsRead(id);
+        return ResponseEntity.ok(Map.of("message", "Notification marked as read"));
+    }
 }
