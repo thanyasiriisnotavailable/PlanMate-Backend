@@ -43,6 +43,9 @@ class NotificationServiceImplTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    // -------------------------------------------------------------------------
+    // UTC-24: saveFcmToken() tests
+    // -------------------------------------------------------------------------
     @Nested
     @DisplayName("UTC-24: saveFcmToken() tests")
     class SaveFcmTokenTests {
@@ -54,7 +57,7 @@ class NotificationServiceImplTest {
                 mockedSecurity.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_UID);
                 when(pendingNotificationDao.findByTargetUserUid(MOCK_UID)).thenReturn(Collections.emptyList());
 
-                notificationService.saveFcmToken("valid_fcm_token_123");
+                assertDoesNotThrow(() -> notificationService.saveFcmToken("valid_fcm_token_123"));
 
                 verify(userService, times(1)).updateFcmToken(MOCK_UID, "valid_fcm_token_123");
                 verify(pendingNotificationDao, times(1)).findByTargetUserUid(MOCK_UID);
@@ -62,28 +65,30 @@ class NotificationServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTC-24-TC-02: Empty token string → Should log warning and not call DB")
-        void saveFcmToken_emptyToken_shouldWarnAndSkip() {
+        @DisplayName("UTC-24-TC-02: Empty token string → Should throw IllegalArgumentException")
+        void saveFcmToken_emptyToken_shouldThrow() {
             try (var mockedSecurity = mockStatic(SecurityUtil.class)) {
                 mockedSecurity.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_UID);
 
-                notificationService.saveFcmToken("");
+                IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                        () -> notificationService.saveFcmToken(""));
 
+                assertEquals("FCM token cannot be null or empty", ex.getMessage());
                 verify(userService, never()).updateFcmToken(any(), any());
-                verify(pendingNotificationDao, never()).findByTargetUserUid(any());
             }
         }
 
         @Test
-        @DisplayName("UTC-24-TC-03: Null token → Should log warning and not call DB")
-        void saveFcmToken_nullToken_shouldWarnAndSkip() {
+        @DisplayName("UTC-24-TC-03: Null token → Should throw IllegalArgumentException")
+        void saveFcmToken_nullToken_shouldThrow() {
             try (var mockedSecurity = mockStatic(SecurityUtil.class)) {
                 mockedSecurity.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_UID);
 
-                notificationService.saveFcmToken(null);
+                IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                        () -> notificationService.saveFcmToken(null));
 
+                assertEquals("FCM token cannot be null or empty", ex.getMessage());
                 verify(userService, never()).updateFcmToken(any(), any());
-                verify(pendingNotificationDao, never()).findByTargetUserUid(any());
             }
         }
 
@@ -102,23 +107,25 @@ class NotificationServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTC-24-TC-05: Database error during save → Should propagate exception")
-        void saveFcmToken_dbError_shouldPropagate() {
+        @DisplayName("UTC-24-TC-05: Database error during save → Should throw RuntimeException with message")
+        void saveFcmToken_dbError_shouldThrowRuntime() {
             try (var mockedSecurity = mockStatic(SecurityUtil.class)) {
                 mockedSecurity.when(SecurityUtil::getAuthenticatedUid).thenReturn(MOCK_UID);
-
                 doThrow(new RuntimeException("DB failure"))
                         .when(userService).updateFcmToken(MOCK_UID, "valid_fcm_token_123");
 
                 RuntimeException ex = assertThrows(RuntimeException.class,
                         () -> notificationService.saveFcmToken("valid_fcm_token_123"));
 
-                assertEquals("DB failure", ex.getMessage());
+                assertTrue(ex.getMessage().contains("Failed to save FCM token"));
                 verify(userService, times(1)).updateFcmToken(MOCK_UID, "valid_fcm_token_123");
             }
         }
     }
 
+    // -------------------------------------------------------------------------
+    // UTC-25: sendNotification() tests
+    // -------------------------------------------------------------------------
     @Nested
     @DisplayName("UTC-25: sendNotification() tests")
     class SendNotificationTests {
@@ -135,9 +142,7 @@ class NotificationServiceImplTest {
                     .type(NotificationType.GENERAL)
                     .build();
 
-            mockUser = User.builder()
-                    .uid(MOCK_UID)
-                    .build();
+            mockUser = User.builder().uid(MOCK_UID).build();
         }
 
         @Test
@@ -151,7 +156,7 @@ class NotificationServiceImplTest {
                 when(userService.getFcmToken(MOCK_UID)).thenReturn("valid_fcm_token_123");
                 when(userService.findByUid(MOCK_UID)).thenReturn(mockUser);
 
-                notificationService.sendNotification(validRequest);
+                assertDoesNotThrow(() -> notificationService.sendNotification(validRequest));
 
                 verify(firebaseMock, times(1)).send(any(Message.class));
                 verify(notificationDao, times(1)).saveNotification(any(Notification.class));
@@ -159,69 +164,36 @@ class NotificationServiceImplTest {
         }
 
         @Test
-        @DisplayName("UTC-25-TC-02: Empty title/body → Should still send successfully")
-        void sendNotification_emptyFields_shouldSend() throws Exception {
-            try (var mockedFirebase = mockStatic(FirebaseMessaging.class)) {
-                FirebaseMessaging firebaseMock = mock(FirebaseMessaging.class);
-                mockedFirebase.when(FirebaseMessaging::getInstance).thenReturn(firebaseMock);
-                when(firebaseMock.send(any(Message.class))).thenReturn("mock_response_456");
-
-                when(userService.getFcmToken(MOCK_UID)).thenReturn("valid_fcm_token_123");
-                when(userService.findByUid(MOCK_UID)).thenReturn(mockUser);
-
-                NotificationRequestDTO emptyRequest = NotificationRequestDTO.builder()
-                        .userUid(MOCK_UID)
-                        .title("")
-                        .content("")
-                        .type(NotificationType.GENERAL)
-                        .build();
-
-                notificationService.sendNotification(emptyRequest);
-
-                verify(firebaseMock, times(1)).send(any(Message.class));
-                verify(notificationDao, times(1)).saveNotification(any(Notification.class));
-            }
-        }
-
-        @Test
-        @DisplayName("UTC-25-TC-03: Null NotificationRequestDTO → Should throw NullPointerException")
-        void sendNotification_nullRequest_shouldThrow() {
-            assertThrows(NullPointerException.class, () -> notificationService.sendNotification(null));
-        }
-
-        @Test
-        @DisplayName("UTC-25-TC-04: Invalid/expired FCM token → Should save pending notification")
-        void sendNotification_invalidToken_shouldSavePending() {
-            when(userService.getFcmToken(MOCK_UID)).thenReturn(null);
+        @DisplayName("UTC-25-TC-02: Empty or null title/body → Should throw IllegalArgumentException")
+        void sendNotification_emptyFields_shouldThrow() {
+            when(userService.getFcmToken(MOCK_UID)).thenReturn("valid_fcm_token_123");
             when(userService.findByUid(MOCK_UID)).thenReturn(mockUser);
 
-            notificationService.sendNotification(validRequest);
+            NotificationRequestDTO badRequest = NotificationRequestDTO.builder()
+                    .userUid(MOCK_UID)
+                    .title("")
+                    .content("")
+                    .type(NotificationType.GENERAL)
+                    .build();
 
-            verify(pendingNotificationDao, times(1)).save(any());
-            verify(notificationDao, never()).saveNotification(any());
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> notificationService.sendNotification(badRequest));
+
+            assertEquals("Notification title and body cannot be null or empty", ex.getMessage());
         }
 
         @Test
-        @DisplayName("UTC-25-TC-05: User not authenticated → Should throw IllegalStateException")
-        void sendNotification_noAuthenticatedUser_shouldThrow() {
-            try (var mockedSecurity = mockStatic(SecurityUtil.class)) {
-                mockedSecurity.when(SecurityUtil::getAuthenticatedUid).thenReturn(null);
-                // Simulate via missing user
-                when(userService.findByUid(null)).thenReturn(null);
+        @DisplayName("UTC-25-TC-03: Null NotificationRequestDTO → Should throw IllegalArgumentException")
+        void sendNotification_nullRequest_shouldThrow() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> notificationService.sendNotification(null));
 
-                NotificationRequestDTO request = NotificationRequestDTO.builder()
-                        .userUid(null)
-                        .title("Test")
-                        .content("Message")
-                        .build();
-
-                assertDoesNotThrow(() -> notificationService.sendNotification(request)); // method handles null user gracefully
-            }
+            assertEquals("Notification request cannot be null", ex.getMessage());
         }
 
         @Test
-        @DisplayName("UTC-25-TC-06: FCM delivery fails temporarily → Should log error but not crash")
-        void sendNotification_fcmFails_shouldCatchError() throws Exception {
+        @DisplayName("UTC-25-TC-04: Delivery failure (e.g. expired token) → Should save pending and throw RuntimeException")
+        void sendNotification_fcmFails_shouldSavePendingAndThrow() throws Exception {
             try (var mockedFirebase = mockStatic(FirebaseMessaging.class)) {
                 FirebaseMessaging firebaseMock = mock(FirebaseMessaging.class);
                 mockedFirebase.when(FirebaseMessaging::getInstance).thenReturn(firebaseMock);
@@ -232,9 +204,36 @@ class NotificationServiceImplTest {
                 when(userService.getFcmToken(MOCK_UID)).thenReturn("valid_fcm_token_123");
                 when(userService.findByUid(MOCK_UID)).thenReturn(mockUser);
 
-                assertDoesNotThrow(() -> notificationService.sendNotification(validRequest));
-                verify(notificationDao, never()).saveNotification(any());
+                RuntimeException ex = assertThrows(RuntimeException.class,
+                        () -> notificationService.sendNotification(validRequest));
+
+                assertTrue(ex.getMessage().contains("Failed to send notification, saved to pending"));
+                verify(pendingNotificationDao, times(1)).save(any());
             }
+        }
+
+        @Test
+        @DisplayName("UTC-25-TC-05: User not found → Should throw IllegalStateException")
+        void sendNotification_userNotFound_shouldThrow() {
+            when(userService.getFcmToken(MOCK_UID)).thenReturn("valid_fcm_token_123");
+            when(userService.findByUid(MOCK_UID)).thenReturn(null);
+
+            IllegalStateException ex = assertThrows(IllegalStateException.class,
+                    () -> notificationService.sendNotification(validRequest));
+
+            assertTrue(ex.getMessage().contains("User not found for UID"));
+        }
+
+        @Test
+        @DisplayName("UTC-25-TC-06: Missing or empty token → Should throw IllegalStateException")
+        void sendNotification_missingToken_shouldThrow() {
+            when(userService.getFcmToken(MOCK_UID)).thenReturn("");
+            when(userService.findByUid(MOCK_UID)).thenReturn(mockUser);
+
+            IllegalStateException ex = assertThrows(IllegalStateException.class,
+                    () -> notificationService.sendNotification(validRequest));
+
+            assertEquals("User has no valid FCM token", ex.getMessage());
         }
 
         @Test

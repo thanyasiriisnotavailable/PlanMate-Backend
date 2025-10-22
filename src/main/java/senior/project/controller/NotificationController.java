@@ -1,6 +1,7 @@
 package senior.project.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import senior.project.dto.NotificationDTO;
@@ -32,8 +33,14 @@ public class NotificationController {
 
     @PostMapping("/send")
     public ResponseEntity<?> sendNoti(@RequestBody NotificationRequestDTO request) {
-        notificationService.sendNotification(request);
-        return ResponseEntity.ok("Notification sent");
+        try {
+            notificationService.sendNotification(request);
+            return ResponseEntity.ok("Notification sent successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Notification failed — saved to pending");
+        }
     }
 
     @PatchMapping("/{id}/read")

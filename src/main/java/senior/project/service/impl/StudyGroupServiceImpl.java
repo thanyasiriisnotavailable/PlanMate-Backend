@@ -180,9 +180,10 @@ public class StudyGroupServiceImpl implements StudyGroupService {
                     : ((double) completedSessions / totalPlannedSessions) * 100.0;
 
             long totalFocusSeconds = focusSessionDao.sumFocusSecondsByUser(uid);
-            long focusHours = totalFocusSeconds / 3600;
 
-            long points = (completedSessions * taskWeight) + (focusHours * hourWeight);
+            double focusHours = totalFocusSeconds / 3600.0;
+            double points = (completedSessions * taskWeight) + (focusHours * hourWeight);
+            points = Math.round(points * 100.0) / 100.0;
 
             // Fetch Firebase user info
             MemberProfileDTO profileDTO = new MemberProfileDTO();
@@ -203,12 +204,12 @@ public class StudyGroupServiceImpl implements StudyGroupService {
                     .completedSessions(completedSessions)
                     .totalFocusSeconds(totalFocusSeconds)
                     .percentageCompleted(Math.round(percentageCompleted * 100.0) / 100.0)
-                    .points(points)
+                    .points(Math.round(points * 100.0) / 100.0)
                     .build());
         }
 
         // sort by points descending
-        progressList.sort((a, b) -> Long.compare(b.getPoints(), a.getPoints()));
+        progressList.sort((a, b) -> Double.compare(b.getPoints(), a.getPoints()));
 
         return progressList;
     }

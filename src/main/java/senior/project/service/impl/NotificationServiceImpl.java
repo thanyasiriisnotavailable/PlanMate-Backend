@@ -16,7 +16,6 @@ import senior.project.service.UserService;
 import senior.project.util.SecurityUtil;
 
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 
 import java.util.List;
@@ -66,9 +65,10 @@ public class NotificationServiceImpl implements NotificationService {
             log.warn("Authenticated UID is null — cannot save FCM token.");
             throw new IllegalStateException("No authenticated user");
         }
+
         if (token == null || token.trim().isEmpty()) {
-            log.warn("Empty FCM token received for uid={}", userUid);
-            return;
+            log.warn("Invalid FCM token received for uid={}", userUid);
+            throw new IllegalArgumentException("FCM token cannot be null or empty");
         }
 
         try {
@@ -79,24 +79,41 @@ public class NotificationServiceImpl implements NotificationService {
             processPendingNotificationsForUser(userUid);
         } catch (Exception e) {
             log.error("Error saving FCM token for uid={}: {}", userUid, e.getMessage(), e);
-            throw e;
+            throw new RuntimeException("Failed to save FCM token", e);
         }
     }
 
     @Override
     public void sendNotification(NotificationRequestDTO request) {
-        String userUid = request.getUserUid();
-        String token = userService.getFcmToken(userUid);
-        User user = userService.findByUid(userUid);
+        if (request == null) {
+            log.warn("Notification request is null — cannot send.");
+            throw new IllegalArgumentException("Notification request cannot be null");
+        }
 
-        if (token == null || token.isEmpty()) {
-            log.warn("No FCM token found for uid={} — notification not sent", userUid);
-            savePendingNotification(request); // Save for later
-            return;
+        String userUid = request.getUserUid();
+        if (userUid == null || userUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("User UID cannot be null or empty");
         }
 
         String title = request.getTitle();
         String content = request.getContent();
+
+        if (title == null || title.trim().isEmpty() || content == null || content.trim().isEmpty()) {
+            log.warn("Invalid notification content (title/body missing) for uid={}", userUid);
+            throw new IllegalArgumentException("Notification title and body cannot be null or empty");
+        }
+
+        String token = userService.getFcmToken(userUid);
+        if (token == null || token.trim().isEmpty()) {
+            log.warn("No valid FCM token found for uid={}", userUid);
+            throw new IllegalStateException("User has no valid FCM token");
+        }
+
+        User user = userService.findByUid(userUid);
+        if (user == null) {
+            throw new IllegalStateException("User not found for UID=" + userUid);
+        }
+
         NotificationType type = request.getType();
 
         try {
@@ -115,8 +132,10 @@ public class NotificationServiceImpl implements NotificationService {
             // Save notification to the database
             saveNotificationToDatabase(title, content, type, user);
 
-        } catch (FirebaseMessagingException e) {
+        } catch (Exception e) {
             log.error("Error sending FCM notification for uid={}: {}", userUid, e.getMessage(), e);
+            savePendingNotification(request);
+            throw new RuntimeException("Failed to send notification, saved to pending", e);
         }
     }
 

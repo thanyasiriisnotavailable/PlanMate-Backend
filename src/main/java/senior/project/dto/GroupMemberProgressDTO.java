@@ -11,5 +11,5 @@ public class GroupMemberProgressDTO {
     private int completedSessions;
     private long totalFocusSeconds;
     private double percentageCompleted;
-    private long points;
+    private double points;
 }
